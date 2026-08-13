@@ -4389,9 +4389,9 @@ function renderVeiculosParados() {
   const savedVL    = S.get(`vlDia_${data}`) || {};
 
   // Equipamentos não selecionados
-  const equipsParados = state.equipamentos.filter(e => !savedEquip[e.id]);
+  const equipsParados = state.equipamentos.filter(e => !savedEquip[e.id]).sort((a, b) => a.desc.localeCompare(b.desc, 'pt-BR'));
   // Veículos leves não selecionados
-  const vlParados = (state.veiculosFrota || []).filter(v => !savedVL[v.id]);
+  const vlParados = (state.veiculosFrota || []).filter(v => !savedVL[v.id]).sort((a, b) => a.desc.localeCompare(b.desc, 'pt-BR'));
 
   if (equipsParados.length === 0 && vlParados.length === 0) {
     cont.innerHTML = '<div class="empty">Todos os equipamentos e veículos estão em uso hoje</div>';
@@ -4960,7 +4960,8 @@ function renderConfigEquip() {
   }
   const dia = dataAtiva();
   const savedEquip = S.get(`equipDia_${dia}`) || {};
-  state.equipamentos.forEach(eq => {
+  const equipamentosOrdenados = [...state.equipamentos].sort((a, b) => a.desc.localeCompare(b.desc, 'pt-BR'));
+  equipamentosOrdenados.forEach(eq => {
     const checked = !!savedEquip[eq.id];
     const row = document.createElement('div');
     row.className = 'item-row' + (checked ? ' checked' : '');
@@ -5237,7 +5238,8 @@ function renderConfigVL() {
   if (frota.length === 0) { cont.innerHTML = '<div class="empty">Nenhum veículo leve cadastrado</div>'; return; }
   const dia = dataAtiva();
   const savedVL = S.get(`vlDia_${dia}`) || {};
-  frota.forEach(v => {
+  const frotaOrdenada = [...frota].sort((a, b) => a.desc.localeCompare(b.desc, 'pt-BR'));
+  frotaOrdenada.forEach(v => {
     const checked = !!savedVL[v.id];
     const row = document.createElement('div');
     row.className = 'item-row' + (checked ? ' checked' : '');
