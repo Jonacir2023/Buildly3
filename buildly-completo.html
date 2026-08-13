@@ -864,6 +864,11 @@ function setSyncToken(token) {
 }
 
 function syncToGithub() {
+  // DESATIVADO: Buildly e JC (Jonacir2023/JC) devem permanecer repositorios
+  // totalmente independentes, sem nenhum vinculo tecnico entre si. Codigo
+  // mantido apenas como referencia historica, nao reativar sem decisao
+  // explicita do usuario.
+  return;
   if (!githubToken) return;
 
   const pautaData = {

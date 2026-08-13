@@ -547,6 +547,11 @@ function salvarConfig(){
 }
 
 function exportarParaN8n(){
+  // DESATIVADO: n8n nao e mais usado (substituido por Sheets/Apps Script) e
+  // Buildly nao deve ter vinculo tecnico com outros repositorios/sistemas
+  // (ex: JC). Codigo mantido apenas como referencia historica.
+  notify('Exportacao para n8n desativada', 'var(--yellow)');
+  return;
   if(!assuntos.length){ notify('Nenhum assunto para exportar','var(--yellow)'); return; }
   if(!config.webhook){ notify('Configure a URL do webhook antes','var(--yellow)'); return; }
 

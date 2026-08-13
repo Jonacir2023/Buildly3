@@ -920,6 +920,11 @@ function prepararImpressao(tipo){
 }
 
 function enviarWebhook(url,payload){
+  // DESATIVADO: n8n nao e mais usado (substituido por Sheets/Apps Script) e
+  // Buildly nao deve ter vinculo tecnico com outros repositorios/sistemas
+  // (ex: JC). Codigo mantido apenas como referencia historica.
+  notify('Envio via webhook n8n desativado', 'var(--yellow)');
+  return;
   if(!url){notify('Configure o webhook nas configuracoes','var(--yellow)');return;}
   var xhr=new XMLHttpRequest();
   xhr.open('POST',url,true);

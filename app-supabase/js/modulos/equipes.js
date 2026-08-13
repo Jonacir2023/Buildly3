@@ -309,7 +309,7 @@ async function renderModuloEquipes(container) {
                       <button type="button" class="btn-sm btn-danger" data-acao="remover" data-id="${c.id}">Remover</button>
                     </td>
                   </tr>
-                \`).join('')}
+                `).join('')}
               </tbody>
             </table>
           `}
