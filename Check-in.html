@@ -658,10 +658,10 @@ function renderKanbanCheckin(){
             <div class="card-footer">
               <span class="card-resp">👤 ${a.resp||'—'}${a.criador?' · ✍️ '+a.criador:''}</span>
               <div class="card-actions">
-                ${c.status==='afazer'?`<button class="card-btn" onclick="moverCard(${a.id},'fazendo')" title="Iniciar">⚡</button>`:''}
-                ${c.status!=='concluido'?`<button class="card-btn" onclick="moverCard(${a.id},'concluido')" title="Concluir">✅</button>`:''}
-                ${c.status!=='cancelado'&&c.status!=='concluido'?`<button class="card-btn" onclick="moverCard(${a.id},'cancelado')" title="Cancelar">🚫</button>`:''}
-                <button class="card-btn" onclick="editarAssunto(${a.id})" title="Editar">✏️</button>
+                ${c.status==='afazer'?`<button class="card-btn" onclick="moverCard('${a.id}','fazendo')" title="Iniciar">⚡</button>`:''}
+                ${c.status!=='concluido'?`<button class="card-btn" onclick="moverCard('${a.id}','concluido')" title="Concluir">✅</button>`:''}
+                ${c.status!=='cancelado'&&c.status!=='concluido'?`<button class="card-btn" onclick="moverCard('${a.id}','cancelado')" title="Cancelar">🚫</button>`:''}
+                <button class="card-btn" onclick="editarAssunto('${a.id}')" title="Editar">✏️</button>
               </div>
             </div>
           </div>
@@ -672,7 +672,7 @@ function renderKanbanCheckin(){
 }
 
 function moverCard(id,status){
-  const a=assuntos.find(x=>x.id===id);
+  const a=assuntos.find(x=>String(x.id)===String(id));
   if(a){
     a.status=status;
     if(status==='concluido')a.concluidoEm=Date.now();
@@ -713,8 +713,8 @@ function renderCadastro(){
           ${a.criador?`<div style="font-size:11px;color:var(--ink-faint);margin-top:1px">✍️ Criador: ${a.criador}</div>`:''}
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0">
-          <button class="card-btn" onclick="editarAssunto(${a.id})" title="Editar">✏️</button>
-          <button class="card-btn" onclick="removerAssunto(${a.id})" title="Remover">🗑️</button>
+          <button class="card-btn" onclick="editarAssunto('${a.id}')" title="Editar">✏️</button>
+          <button class="card-btn" onclick="removerAssunto('${a.id}')" title="Remover">🗑️</button>
         </div>
       </div>
     </div>
@@ -738,7 +738,7 @@ function abrirModalAssunto(a){
   document.getElementById('modal-assunto').classList.add('open');
 }
 
-function editarAssunto(id){abrirModalAssunto(assuntos.find(x=>x.id===id))}
+function editarAssunto(id){abrirModalAssunto(assuntos.find(x=>String(x.id)===String(id)))}
 function fecharModal(id){document.getElementById(id).classList.remove('open')}
 
 function salvarAssunto(){
@@ -778,7 +778,7 @@ function salvarAssunto(){
 
 function removerAssunto(id){
   if(!confirm('Remover este assunto?'))return;
-  assuntos=assuntos.filter(a=>a.id!==id);
+  assuntos=assuntos.filter(a=>String(a.id)!==String(id));
   S.set('assuntos',assuntos);
 
   // Lembra que este ID foi removido manualmente, para a busca na planilha
@@ -787,6 +787,13 @@ function removerAssunto(id){
   try { idsRemovidos = JSON.parse(localStorage.getItem('chk_removidos') || '[]'); } catch { idsRemovidos = []; }
   if (!idsRemovidos.map(String).includes(String(id))) idsRemovidos.push(id);
   localStorage.setItem('chk_removidos', JSON.stringify(idsRemovidos));
+
+  if (APPS_SCRIPT_URL_PAUTA) {
+    fetch(APPS_SCRIPT_URL_PAUTA, {
+      method: 'POST',
+      body: JSON.stringify({ path: 'checkin', action: 'remover', id })
+    }).catch(e => console.warn('Check-in: não foi possível remover na planilha:', e.message));
+  }
 
   renderCadastro();renderKanbanCheckin();atualizarContadores();
   notify('Removido','var(--red)');
