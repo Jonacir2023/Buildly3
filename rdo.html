@@ -2804,10 +2804,47 @@ function removerFotoDia(idx) {
 // ============================================================
 // COPIAR DO ÚLTIMO DIÁRIO
 // ============================================================
-function copiarUltimoDiario() {
+// Sem isto, um navegador/aparelho novo nunca via o diário de ontem no botão
+// "copiar do último diário" — só olhava o history local, nunca a nuvem, mesmo
+// com o backup completo (mesma estrutura, sem perda) disponível no Drive.
+async function tentarTrazerDiaAnteriorDaNuvem(atual) {
+  if (!APPS_SCRIPT_URL_DIARIO) return false;
+  try {
+    const obra = state.obra.nome || 'Obra';
+    const resp = await fetch(`${APPS_SCRIPT_URL_DIARIO}?path=backup&action=buscar-ultimo&obra=${encodeURIComponent(obra)}`);
+    const json = await resp.json().catch(() => null);
+    if (!json || !json.ok || !json.conteudo) return false;
+    const dados = JSON.parse(json.conteudo);
+    if (!dados.history) return false;
+    const datasNuvem = Object.keys(dados.history).filter(d => d < atual).sort();
+    if (!datasNuvem.length) return false;
+    const origem = datasNuvem[datasNuvem.length - 1];
+
+    // Traz só o dia encontrado, sem sobrescrever o resto do histórico local
+    history[origem] = { ...EMPTY_DAY(), ...dados.history[origem] };
+    saveHistory();
+    if (dados.chavesDia) {
+      ['efetivoDia_', 'equipDia_', 'vlDia_', 'ativDia_'].forEach(p => {
+        const k = p + origem;
+        if (dados.chavesDia[k] !== undefined) localStorage.setItem(k, dados.chavesDia[k]);
+      });
+    }
+    return true;
+  } catch (e) {
+    console.warn('Não foi possível buscar diário anterior na nuvem:', e.message);
+    return false;
+  }
+}
+
+async function copiarUltimoDiario() {
   const atual = currentDay.data;
   if (!atual) { toast('❌ Defina a data do diário primeiro'); return; }
-  const datas = Object.keys(history).filter(d => d < atual).sort();
+  let datas = Object.keys(history).filter(d => d < atual).sort();
+  if (!datas.length) {
+    toast('☁️ Nenhum diário local anterior — buscando na nuvem...');
+    const trazido = await tentarTrazerDiaAnteriorDaNuvem(atual);
+    if (trazido) datas = Object.keys(history).filter(d => d < atual).sort();
+  }
   if (!datas.length) { toast('❌ Não há diário anterior para copiar'); return; }
   const origem = datas[datas.length - 1];
   if (!confirm(`Copiar efetivo, equipamentos, veículos e atividades do diário de ${formatDateBR(origem)}?\n\nAs quantidades das atividades serão zeradas.`)) return;

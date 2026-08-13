@@ -979,6 +979,49 @@ function pautaInit() {
   document.getElementById('pauta-hdr-date').textContent = new Date().toLocaleDateString('pt-BR', {weekday:'short',day:'2-digit',month:'short'}) + ' ' + new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
   document.getElementById('pauta-f-data-lanc').value = new Date().toISOString().slice(0,10);
   pautaPopularSelects();
+  pautaCarregarDoServidor();
+}
+
+// Busca a lista de pautas direto da planilha: acrescenta o que só existe lá
+// (id novo) e atualiza o status do que já existe localmente (ex: alguém
+// marcou "Concluído" em outro aparelho). Sem isto, um navegador/aparelho
+// novo mostrava a aba "Listar" vazia mesmo com assuntos em andamento na
+// planilha — o app só lia do localStorage, nunca da planilha em si.
+async function pautaCarregarDoServidor() {
+  try {
+    const resp = await fetch(APPS_SCRIPT_URL + '?path=pauta&action=listar');
+    const data = await resp.json();
+    if (!data || (!data.dados && !data.pautas)) return;
+    const doServidor = data.dados || data.pautas || [];
+    const porId = new Map(pautaAssuntos.map(a => [String(a.id), a]));
+    let adicionados = 0, atualizados = 0;
+    doServidor.forEach(p => {
+      if (!p.id) return;
+      const chave = String(p.id);
+      const existente = porId.get(chave);
+      if (existente) {
+        if (p.status && existente.status !== p.status) { existente.status = p.status; atualizados++; }
+      } else {
+        const novo = {
+          id: p.id, assunto: p.assunto, desc: p.desc || '',
+          criador: p.criador || '', resp: p.resp || '', setor: p.setor || '',
+          prioridade: p.prioridade || 'media', status: p.status || 'afazer',
+          dataLanc: p.dataLanc || '', dataTerm: p.dataTerm || '',
+          criadoEm: Date.parse(p['Criado Em']) || Date.now()
+        };
+        pautaAssuntos.push(novo);
+        porId.set(chave, novo);
+        adicionados++;
+      }
+    });
+    if (adicionados > 0 || atualizados > 0) {
+      pautaS.set('assuntos', pautaAssuntos);
+      pautaRenderListar();
+      console.log(`✅ Pauta: ${adicionados} novo(s), ${atualizados} atualizado(s) da planilha`);
+    }
+  } catch (e) {
+    console.warn('Pauta: não foi possível buscar da planilha:', e.message);
+  }
 }
 
 function pautaNotify(msg, cor) {
@@ -1419,6 +1462,59 @@ function checkinInit() {
   checkinSincronizarComPauta();
 
   checkinRender();
+
+  // Busca o histórico próprio do Check-in direto da planilha, pra alinhar
+  // com o que outros aparelhos/navegadores já lançaram.
+  checkinCarregarHistoricoDoServidor();
+}
+
+// Sem isto, um navegador/aparelho novo mostrava Cadastro e Check-in vazios
+// mesmo com assuntos em andamento na aba CheckIn da planilha — nada aqui
+// nunca chamava path=checkin&action=historico. Também atualiza o status do
+// que já existe localmente, pra refletir mudanças feitas em outro aparelho.
+async function checkinCarregarHistoricoDoServidor() {
+  try {
+    const resp = await fetch(APPS_SCRIPT_URL + '?path=checkin&action=historico');
+    const data = await resp.json();
+    if (!data || (!data.dados && !data.checkins)) return;
+    const doServidor = data.dados || data.checkins || [];
+
+    let idsRemovidos = [];
+    try { idsRemovidos = JSON.parse(localStorage.getItem('chk_removidos') || '[]'); } catch { idsRemovidos = []; }
+    const removidosSet = new Set(idsRemovidos.map(String));
+
+    const porId = new Map(checkinAssuntos.map(a => [String(a.id), a]));
+    let adicionados = 0, atualizados = 0;
+    doServidor.forEach(c => {
+      if (!c.id || removidosSet.has(String(c.id))) return;
+      const chave = String(c.id);
+      const existente = porId.get(chave);
+      if (existente) {
+        if (c.status && existente.status !== c.status) { existente.status = c.status; atualizados++; }
+      } else {
+        const novo = {
+          id: c.id, assunto: c.assunto, desc: c.desc || '',
+          criador: c.criador || '', resp: c.resp || '', setor: c.setor || '',
+          prioridade: c.prioridade || 'media', status: c.status || 'afazer',
+          dataTerm: c.dataTerm || '', concluidoEm: c.concluidoEm || '',
+          criadoEm: Date.parse(c.criadoEm) || Date.now(),
+          _origem: 'checkin'
+        };
+        checkinAssuntos.push(novo);
+        porId.set(chave, novo);
+        adicionados++;
+      }
+    });
+    if (adicionados > 0 || atualizados > 0) {
+      checkinS.set('assuntos', checkinAssuntos);
+      checkinRenderCadastro();
+      checkinRenderKanban();
+      checkinAtualizarContadores();
+      console.log(`✅ Check-in: ${adicionados} novo(s), ${atualizados} atualizado(s) da planilha`);
+    }
+  } catch (e) {
+    console.warn('Check-in: não foi possível buscar da planilha:', e.message);
+  }
 }
 
 function checkinSincronizarComPauta() {

@@ -330,6 +330,47 @@ function init(){
   document.getElementById('cfg-webhook').value = config.webhook || '';
 
   popularSelects();
+  carregarDoServidor();
+}
+
+// Busca a lista de pautas direto da planilha: acrescenta o que só existe lá
+// e atualiza o status do que já existe localmente (ex: alguém marcou
+// "Concluído" em outro aparelho). Sem isto, um navegador/aparelho novo
+// mostrava a aba "Listar" vazia mesmo com assuntos em andamento na planilha.
+async function carregarDoServidor(){
+  try {
+    const resp = await fetch(APPS_SCRIPT_URL_PAUTA + '?path=pauta&action=listar');
+    const data = await resp.json();
+    if (!data || (!data.dados && !data.pautas)) return;
+    const doServidor = data.dados || data.pautas || [];
+    const porId = new Map(assuntos.map(a => [String(a.id), a]));
+    let adicionados = 0, atualizados = 0;
+    doServidor.forEach(p => {
+      if (!p.id) return;
+      const chave = String(p.id);
+      const existente = porId.get(chave);
+      if (existente) {
+        if (p.status && existente.status !== p.status) { existente.status = p.status; atualizados++; }
+      } else {
+        const novo = {
+          id: p.id, assunto: p.assunto, desc: p.desc || '',
+          criador: p.criador || '', resp: p.resp || '', setor: p.setor || '',
+          prioridade: p.prioridade || 'media', status: p.status || 'afazer',
+          dataLanc: p.dataLanc || '', dataTerm: p.dataTerm || '',
+          criadoEm: Date.parse(p['Criado Em']) || Date.now()
+        };
+        assuntos.push(novo);
+        porId.set(chave, novo);
+        adicionados++;
+      }
+    });
+    if (adicionados > 0 || atualizados > 0) {
+      S.set('assuntos', assuntos);
+      renderListar();
+    }
+  } catch (e) {
+    console.warn('Pauta: não foi possível buscar da planilha:', e.message);
+  }
 }
 
 setInterval(()=>{

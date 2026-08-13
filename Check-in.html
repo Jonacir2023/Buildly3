@@ -385,7 +385,7 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px}
 
 <script>
 // 🔗 Google Apps Script API
-const APPS_SCRIPT_URL_PAUTA = 'https://script.google.com/macros/s/AKfycbx4Ji0Ip0AKcobFyQn7fG26rC_5GkFUUd25IcWQZc_5qZWVEvGzvYtJQNqm5Z7M9lcW4w/exec';
+const APPS_SCRIPT_URL_PAUTA = 'https://script.google.com/macros/s/AKfycbwrSC_cQQW5IDu7Yrub0wnfMx7aInCX37U3BpiouC0qbFk6qgOwQpJzLXzH1XUX9lGEOA/exec';
 
 const S={
   get(k){try{return JSON.parse(localStorage.getItem('chk_'+k))}catch{return null}},
@@ -394,35 +394,67 @@ const S={
 
 let config=S.get('config')||{obra:'',whSalvar:'',whTelegram:'',whCarregar:'',whPDF:''};
 
-// Carregar assuntos da planilha Google
-async function carregarDaPlanilhaGoogle() {
+// Busca Pauta (listar) e o histórico próprio do Check-in (historico) da
+// planilha e MESCLA no que já existe localmente — nunca substitui o array
+// inteiro. A versão antiga desta função sobrescrevia `assuntos` só com a
+// Pauta (perdendo qualquer item que só existisse no Check-in) e usava nomes
+// de campo que não existiam na resposta do servidor (p.descrição,
+// p.responsável, p.data_lançamento...), então nunca preenchia nada de
+// verdade além do essencial.
+async function carregarDaPlanilhaGoogle(manual) {
   try {
-    notify('Carregando da planilha...', 'var(--blue)');
-    const resp = await fetch(APPS_SCRIPT_URL_PAUTA + '?path=pauta&action=listar');
-    const data = await resp.json();
+    if (manual) notify('Carregando da planilha...', 'var(--blue)');
 
-    if (data.pautas && data.pautas.length > 0) {
-      assuntos = data.pautas.map(p => ({
-        id: p.id,
-        assunto: p.assunto,
-        desc: p.descrição,
-        criador: p.criador,
-        resp: p.responsável,
-        setor: p.setor,
-        prioridade: p.prioridade,
-        status: p.status.toLowerCase().replace(' ', ''),
-        dataLanc: p.data_lançamento,
-        dataTerm: p.data_término,
-        criadoEm: new Date(p.criado_em).getTime()
-      }));
+    let idsRemovidos = [];
+    try { idsRemovidos = JSON.parse(localStorage.getItem('chk_removidos') || '[]'); } catch { idsRemovidos = []; }
+    const removidosSet = new Set(idsRemovidos.map(String));
+
+    const porId = new Map(assuntos.map(a => [String(a.id), a]));
+    let adicionados = 0, atualizados = 0;
+
+    const mesclar = (lista, origem) => {
+      lista.forEach(p => {
+        if (!p.id || removidosSet.has(String(p.id))) return;
+        const chave = String(p.id);
+        const existente = porId.get(chave);
+        if (existente) {
+          if (p.status && existente.status !== p.status) { existente.status = p.status; atualizados++; }
+        } else {
+          const novo = {
+            id: p.id, assunto: p.assunto, desc: p.desc || '',
+            criador: p.criador || '', resp: p.resp || '', setor: p.setor || '',
+            prioridade: p.prioridade || 'media', status: p.status || 'afazer',
+            dataLanc: p.dataLanc || '', dataTerm: p.dataTerm || '',
+            criadoEm: Date.parse(p['Criado Em'] || p.criadoEm) || Date.now(),
+            _origem: origem
+          };
+          assuntos.push(novo);
+          porId.set(chave, novo);
+          adicionados++;
+        }
+      });
+    };
+
+    const [respPauta, respCheckin] = await Promise.all([
+      fetch(APPS_SCRIPT_URL_PAUTA + '?path=pauta&action=listar').then(r => r.json()).catch(() => null),
+      fetch(APPS_SCRIPT_URL_PAUTA + '?path=checkin&action=historico').then(r => r.json()).catch(() => null)
+    ]);
+    if (respPauta) mesclar(respPauta.dados || respPauta.pautas || [], 'pauta');
+    if (respCheckin) mesclar(respCheckin.dados || respCheckin.checkins || [], 'checkin');
+
+    if (adicionados > 0 || atualizados > 0) {
       S.set('assuntos', assuntos);
+      renderCadastro();
       renderCheckin();
-      notify('✅ Assuntos atualizados da planilha!');
-    } else {
-      notify('Nenhum assunto encontrado na planilha', 'var(--yellow)');
+    }
+    if (manual) {
+      notify((adicionados || atualizados)
+        ? `✅ ${adicionados} novo(s), ${atualizados} atualizado(s)`
+        : 'Tudo já estava atualizado');
     }
   } catch (err) {
-    notify('❌ Erro ao carregar: ' + err.message, 'var(--red)');
+    if (manual) notify('❌ Erro ao carregar: ' + err.message, 'var(--red)');
+    else console.warn('Check-in: não foi possível buscar da planilha:', err.message);
   }
 }
 
@@ -515,7 +547,7 @@ function goTab(id,el){
 }
 
 function carregarDaPlanilha(){
-  carregarDaPlanilhaGoogle();
+  carregarDaPlanilhaGoogle(true);
 }
 
 function initData(){
@@ -748,6 +780,14 @@ function removerAssunto(id){
   if(!confirm('Remover este assunto?'))return;
   assuntos=assuntos.filter(a=>a.id!==id);
   S.set('assuntos',assuntos);
+
+  // Lembra que este ID foi removido manualmente, para a busca na planilha
+  // não reimportá-lo automaticamente na próxima vez que a página carregar.
+  let idsRemovidos = [];
+  try { idsRemovidos = JSON.parse(localStorage.getItem('chk_removidos') || '[]'); } catch { idsRemovidos = []; }
+  if (!idsRemovidos.map(String).includes(String(id))) idsRemovidos.push(id);
+  localStorage.setItem('chk_removidos', JSON.stringify(idsRemovidos));
+
   renderCadastro();renderKanbanCheckin();atualizarContadores();
   notify('Removido','var(--red)');
 }
@@ -1135,7 +1175,7 @@ document.querySelectorAll('.modal-overlay,.config-modal').forEach(m=>{
 
 initData();
 renderCheckin();
-carregarDaPlanilha();
+carregarDaPlanilhaGoogle(false);
 </script>
 </body>
 </html>
