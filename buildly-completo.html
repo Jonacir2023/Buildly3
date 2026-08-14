@@ -366,14 +366,13 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <div class="hdr-date" id="pauta-hdr-date"></div>
-        <button class="btn-admin" onclick="pautaOpenAdmin()">⚙️ Admin</button>
       </div>
     </div>
   </header>
   <nav class="tabs" style="top:70px">
     <div class="tab active" onclick="pautaGoTab('envio',this)">📤 Envio</div>
     <div class="tab" onclick="pautaGoTab('listar',this)">📋 Listar</div>
-    <div class="tab" onclick="pautaGoTab('exportar',this)">🚀 Exportar</div>
+    <div class="tab" onclick="pautaOpenAdmin()">⚙️ Cadastro</div>
   </nav>
 
   <!-- ENVIO -->
