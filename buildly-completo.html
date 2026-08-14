@@ -648,7 +648,7 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
     </div>
   </header>
 
-  <div style="padding-top:86px;padding-left:16px;padding-right:16px">
+  <div id="obra-scroll-body" style="position:fixed;top:70px;left:50%;transform:translateX(-50%);width:100%;max-width:480px;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px">
     <div class="sec">
       <div class="sec-title">🏗️ Identificação</div>
       <div class="frow"><label>Nome da Obra</label><input type="text" id="obra-nome" placeholder="Ex.: Obra Beira-Mar Norte"/></div>
@@ -833,6 +833,8 @@ function obraCompartilhada() {
 }
 
 function obraInit() {
+  const scrollBody = document.getElementById('obra-scroll-body');
+  if (scrollBody) scrollBody.scrollTop = 0;
   const o = obraCompartilhada();
   document.getElementById('obra-nome').value = o.nome || '';
   document.getElementById('obra-empresa').value = o.empresa || '';
