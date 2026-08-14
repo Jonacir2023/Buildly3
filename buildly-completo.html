@@ -229,10 +229,13 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
 .modal-overlay.modal-checkin{align-items:flex-end}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
 .cal-day-name{text-align:center;font-size:11px;font-weight:700;color:var(--ink-soft);padding:4px 0;font-family:var(--serif)}
-.cal-day{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;background:#fff;border:1px solid var(--line)}
+.cal-day{position:relative;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;background:#fff;border:1px solid var(--line)}
 .cal-day.today{background:var(--accent);color:#fff;border-color:var(--accent)}
 .cal-day.has-event{border-color:var(--blue);background:#dde8f5}
+.cal-day.selected{outline:2px solid var(--blue);outline-offset:-1px}
 .cal-day.empty{background:transparent;border-color:transparent;cursor:default}
+.cal-day-dot{width:5px;height:5px;border-radius:50%;background:var(--blue);position:absolute;bottom:4px;left:50%;transform:translateX(-50%)}
+.cal-day.today .cal-day-dot{background:#fff}
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .cal-nav-btn{background:none;border:none;cursor:pointer;font-size:18px;padding:4px 10px;color:var(--ink)}
 .cal-nav-title{font-family:var(--serif);font-size:16px;font-weight:700}
@@ -594,6 +597,10 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
         <button class="cal-nav-btn" onclick="checkinCalNav(1)">&#8250;</button>
       </div>
       <div class="cal-grid" id="checkin-cal-grid"></div>
+    </div>
+    <div class="sec" id="checkin-cal-resumo-dia-sec" style="display:none">
+      <div class="sec-title" id="checkin-cal-resumo-dia-titulo">📌 Assuntos do dia</div>
+      <div id="checkin-cal-resumo-dia-lista"></div>
     </div>
     <div class="sec">
       <div class="sec-title">📅 Reuniões do Mês</div>
@@ -1578,6 +1585,7 @@ let checkinReunioes = checkinS.get('reunioes') || [];
 let checkinNomesResp = checkinS.get('nomesResp') || [];
 let checkinNomesCriador = checkinS.get('nomesCriador') || [];
 let checkinCalMes = new Date();
+let checkinDiaSelecionadoCal = null;
 let _checkinImagemParaCompartilhar = null;
 let checkinResumoTab = 'semanal';
 
@@ -2012,13 +2020,8 @@ async function checkinCarregarDaPlanilha() {
   ]);
 }
 
-function checkinRenderCadastro() {
-  const cont = document.getElementById('checkin-lista-assuntos-cadastro');
-  if (!checkinAssuntos.length) {
-    cont.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-txt">Nenhum</div></div>';
-    return;
-  }
-  cont.innerHTML = checkinAssuntos.map(a => `
+function checkinCardAssuntoHTML(a) {
+  return `
     <div style="background:#fff;border-radius:8px;padding:11px 12px;margin-bottom:8px;border:1px solid var(--line)">
       <div style="display:flex;align-items:flex-start;gap:8px">
         <div style="flex:1">
@@ -2041,7 +2044,16 @@ function checkinRenderCadastro() {
         </div>
       </div>
     </div>
-  `).join('');
+  `;
+}
+
+function checkinRenderCadastro() {
+  const cont = document.getElementById('checkin-lista-assuntos-cadastro');
+  if (!checkinAssuntos.length) {
+    cont.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-txt">Nenhum</div></div>';
+    return;
+  }
+  cont.innerHTML = checkinAssuntos.map(checkinCardAssuntoHTML).join('');
 }
 
 function checkinAbrirModalAssunto(a) {
@@ -2230,18 +2242,20 @@ function checkinRenderCalendario() {
   const primeiroDia = new Date(ano, mes, 1).getDay();
   const diasMes = new Date(ano, mes + 1, 0).getDate();
   const hoje = new Date();
-  const eventosDias = {};
-  checkinReunioes.forEach(r => {
-    if (!r.data) return;
-    const [a,m,d] = r.data.split('-').map(Number);
-    if (m - 1 === mes && a === ano) eventosDias[d] = (eventosDias[d] || 0) + 1;
+  const assuntosDias = {};
+  checkinAssuntos.forEach(a => {
+    if (!a.dataLanc) return;
+    const [ay,am,ad] = a.dataLanc.split('-').map(Number);
+    if (am - 1 === mes && ay === ano) assuntosDias[ad] = (assuntosDias[ad] || 0) + 1;
   });
   const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   let html = dias.map(d => `<div class="cal-day-name">${d}</div>`).join('');
   for (let i = 0; i < primeiroDia; i++) html += `<div class="cal-day empty"></div>`;
   for (let d = 1; d <= diasMes; d++) {
+    const iso = `${ano}-${String(mes + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isHoje = d === hoje.getDate() && mes === hoje.getMonth() && ano === hoje.getFullYear();
-    html += `<div class="cal-day ${isHoje ? 'today' : ''} ${eventosDias[d] ? 'has-event' : ''}">${d}</div>`;
+    const isSelecionado = iso === checkinDiaSelecionadoCal;
+    html += `<div class="cal-day ${isHoje ? 'today' : ''} ${isSelecionado ? 'selected' : ''}" onclick="checkinSelecionarDiaCal('${iso}')">${d}${assuntosDias[d] ? '<div class="cal-day-dot"></div>' : ''}</div>`;
   }
   document.getElementById('checkin-cal-grid').innerHTML = html;
   const lr = document.getElementById('checkin-lista-reunioes-cal');
@@ -2261,8 +2275,24 @@ function checkinRenderCalendario() {
   `).join('') : '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-txt">Nenhuma reunião</div></div>';
 }
 
+function checkinSelecionarDiaCal(iso) {
+  checkinDiaSelecionadoCal = iso;
+  checkinRenderCalendario();
+  const [ay, am, ad] = iso.split('-');
+  const lista = checkinAssuntos.filter(a => a.dataLanc === iso);
+  document.getElementById('checkin-cal-resumo-dia-titulo').textContent = `📌 Assuntos de ${ad}/${am}/${ay}`;
+  document.getElementById('checkin-cal-resumo-dia-lista').innerHTML = lista.length
+    ? lista.map(checkinCardAssuntoHTML).join('')
+    : '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-txt">Nenhum assunto criado nesse dia</div></div>';
+  const sec = document.getElementById('checkin-cal-resumo-dia-sec');
+  sec.style.display = '';
+  sec.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
 function checkinCalNav(dir) {
   checkinCalMes = new Date(checkinCalMes.getFullYear(), checkinCalMes.getMonth() + dir, 1);
+  checkinDiaSelecionadoCal = null;
+  document.getElementById('checkin-cal-resumo-dia-sec').style.display = 'none';
   checkinRenderCalendario();
 }
 
