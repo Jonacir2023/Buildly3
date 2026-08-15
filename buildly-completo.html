@@ -343,12 +343,11 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
         <div class="home-button-desc">Cadastrar e editar obras</div>
       </div>
 
-      <!-- 8. Reuniões (Reserved) -->
-      <div class="home-button btn-reunioes disabled">
+      <!-- 8. Reuniões (Ata de Reunião) -->
+      <div class="home-button btn-reunioes" onclick="switchTab('reuniao', this)">
         <div class="home-button-icon">🗓️</div>
         <div class="home-button-title">Reuniões</div>
-        <div class="home-button-desc">Em desenvolvimento</div>
-        <div class="home-button-badge">Em breve</div>
+        <div class="home-button-desc">Atas de reunião</div>
       </div>
 
       <!-- 9. Resumo do Tempo (Reserved) -->
@@ -646,6 +645,11 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
 <!-- RDO PAGE (Diário de Obras) -->
 <div class="page" id="page-rdo">
   <iframe id="rdo-iframe" src="rdo.html" style="width:100%;height:calc(100vh - 140px);border:none;background:#f0ece7;display:block;margin:0;padding:0" frameborder="0" allow="geolocation; microphone; camera"></iframe>
+</div>
+
+<!-- REUNIÃO PAGE (Ata de Reunião) -->
+<div class="page" id="page-reuniao">
+  <iframe id="reuniao-iframe" src="reuniao.html" style="width:100%;height:calc(100vh - 140px);border:none;background:#f0ece7;display:block;margin:0;padding:0" frameborder="0" allow="geolocation; microphone; camera"></iframe>
 </div>
 
 <!-- OBRA PAGE (cadastro compartilhado entre todos os apps) -->
