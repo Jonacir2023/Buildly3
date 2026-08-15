@@ -1333,7 +1333,7 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
   <div class="section">
     <div class="section-title">
       <div class="section-title-text">👷 Efetivo</div>
-      <button class="icon-btn" onclick="abrirAbaEfetivo()" title="Selecionar presentes">➕</button>
+      <button class="icon-btn" onclick="abrirAbaEfetivo()" title="Selecionar presentes"><span style="color:var(--accent-soft);font-weight:800;font-size:18px;line-height:1">+</span></button>
     </div>
     <div class="stats-row cols-3">
       <div class="stat"><div class="stat-num" id="statPresentes">0</div><div class="stat-label">Presentes</div></div>
@@ -1346,7 +1346,7 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
   <div class="section">
     <div class="section-title">
       <div class="section-title-text">🚜 Equipamentos Utilizados</div>
-      <button class="icon-btn" onclick="abrirAbaEquipamentos()" title="Selecionar equipamentos">➕</button>
+      <button class="icon-btn" onclick="abrirAbaEquipamentos()" title="Selecionar equipamentos"><span style="color:var(--accent-soft);font-weight:800;font-size:18px;line-height:1">+</span></button>
     </div>
     <div id="equipList"></div>
   </div>
@@ -1354,7 +1354,7 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
   <div class="section">
     <div class="section-title">
       <div class="section-title-text">🚗 Veículos Leves Utilizados</div>
-      <button class="icon-btn" onclick="abrirAbaVeiculosLeves()" title="Selecionar veículos">➕</button>
+      <button class="icon-btn" onclick="abrirAbaVeiculosLeves()" title="Selecionar veículos"><span style="color:var(--accent-soft);font-weight:800;font-size:18px;line-height:1">+</span></button>
     </div>
     <div id="veiculosLevesList"></div>
   </div>
@@ -1372,7 +1372,7 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
   <div class="section">
     <div class="section-title">
       <div class="section-title-text">🛠️ Atividades do Dia</div>
-      <button class="icon-btn" onclick="abrirAbaAtividades()" title="Selecionar atividades">➕</button>
+      <button class="icon-btn" onclick="abrirAbaAtividades()" title="Selecionar atividades"><span style="color:var(--accent-soft);font-weight:800;font-size:18px;line-height:1">+</span></button>
     </div>
     <div id="atividadesList"></div>
   </div>
@@ -1380,38 +1380,38 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
   <div class="section">
     <div class="section-title">
       <div class="section-title-text">⏸️ Atividades Paralisadas</div>
-      <button class="icon-btn" onclick="abrirModalAtivParalisada()" title="Adicionar">➕</button>
+      <button class="icon-btn" onclick="abrirModalAtivParalisada()" title="Adicionar"><span style="color:var(--accent-soft);font-weight:800;font-size:18px;line-height:1">+</span></button>
     </div>
     <p style="font-size:12px;color:var(--ink-faint);margin-bottom:10px;font-style:italic">
       Atividades do cadastro que estão paralisadas neste dia. Informe a justificativa de cada uma.
     </p>
     <div id="ativParalisadasList"><div class="empty">Nenhuma atividade paralisada</div></div>
-    <button class="add-btn-full" onclick="abrirModalAtivParalisada()">+ Adicionar atividade paralisada</button>
+    <button class="add-btn-full" onclick="abrirModalAtivParalisada()"><span style="color:var(--accent-soft)">+</span> Adicionar atividade paralisada</button>
   </div>
 
   <div class="section">
     <div class="section-title">
       <div class="section-title-text">📝 Observações do Dia</div>
     </div>
-    <textarea id="observacoesDia" placeholder="Registre aqui informações importantes do dia: ocorrências, decisões, visitas, pendências, condições especiais..." style="min-height:140px;resize:vertical"></textarea>
+    <textarea id="observacoesDia" placeholder="Registre aqui informações importantes do dia: ocorrências, decisões, visitas, pendências, condições especiais... Use * para separar cada observação em uma linha." style="min-height:140px;resize:vertical"></textarea>
   </div>
 
   <div class="section">
     <div class="section-title">
       <div class="section-title-text">🦺 Eventos de Segurança</div>
-      <button class="icon-btn" onclick="abrirModalEventoDia('seguranca')" title="Adicionar">➕</button>
+      <button class="icon-btn" onclick="abrirModalEventoDia('seguranca')" title="Adicionar"><span style="color:var(--accent-soft);font-weight:800;font-size:18px;line-height:1">+</span></button>
     </div>
     <div id="evSegList"></div>
-    <button class="add-btn-full" onclick="abrirModalEventoAvulso('seguranca')">+ Registrar evento avulso</button>
+    <button class="add-btn-full" onclick="abrirModalEventoAvulso('seguranca')"><span style="color:var(--accent-soft)">+</span> Registrar evento avulso</button>
   </div>
   
   <div class="section">
     <div class="section-title">
       <div class="section-title-text">🌱 Eventos de Meio Ambiente</div>
-      <button class="icon-btn" onclick="abrirModalEventoDia('meio_ambiente')" title="Adicionar">➕</button>
+      <button class="icon-btn" onclick="abrirModalEventoDia('meio_ambiente')" title="Adicionar"><span style="color:var(--accent-soft);font-weight:800;font-size:18px;line-height:1">+</span></button>
     </div>
     <div id="evAmbList"></div>
-    <button class="add-btn-full" onclick="abrirModalEventoAvulso('meio_ambiente')">+ Registrar evento avulso</button>
+    <button class="add-btn-full" onclick="abrirModalEventoAvulso('meio_ambiente')"><span style="color:var(--accent-soft)">+</span> Registrar evento avulso</button>
   </div>
 
   <div class="section">
@@ -1614,7 +1614,7 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
       <p style="font-size:12px;color:var(--ink-faint);margin-bottom:10px;font-style:italic">
         Marque quem está presente hoje na caixinha. Use ✏️/🗑️ para editar ou remover do cadastro.
       </p>
-      <button class="add-btn-full" onclick="abrirModalCategoria()">+ Adicionar Categoria</button>
+      <button class="add-btn-full" onclick="abrirModalCategoria()"><span style="color:var(--accent-soft)">+</span> Adicionar Categoria</button>
       <hr class="divider">
       <div id="configColabList"></div>
       <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="salvarEfetivoDia()">💾 Salvar Efetivo do Dia</button>
@@ -1628,7 +1628,7 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
       <p style="font-size:12px;color:var(--ink-faint);margin-bottom:10px;font-style:italic">
         Marque os utilizados hoje na caixinha. Use ✏️/🗑️ para editar ou remover do cadastro.
       </p>
-      <button class="add-btn-full" onclick="abrirModalEquipamento()">+ Adicionar Equipamento</button>
+      <button class="add-btn-full" onclick="abrirModalEquipamento()"><span style="color:var(--accent-soft)">+</span> Adicionar Equipamento</button>
       <hr class="divider">
       <div id="configEquipList"></div>
       <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="salvarEquipDia()">💾 Salvar Equipamentos do Dia</button>
@@ -1639,7 +1639,7 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
       <p style="font-size:12px;color:var(--ink-faint);margin-bottom:10px;font-style:italic">
         Marque os utilizados hoje na caixinha. Use ✏️/🗑️ para editar ou remover da frota.
       </p>
-      <button class="add-btn-full" onclick="abrirModalVeiculoFrota()">+ Adicionar Veículo Leve</button>
+      <button class="add-btn-full" onclick="abrirModalVeiculoFrota()"><span style="color:var(--accent-soft)">+</span> Adicionar Veículo Leve</button>
       <hr class="divider">
       <div id="configVLList"></div>
       <button class="btn btn-primary btn-full" style="margin-top:14px" onclick="salvarVLDia()">💾 Salvar Veículos do Dia</button>
@@ -1653,7 +1653,7 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
       <p style="font-size:12px;color:var(--ink-faint);margin-bottom:10px;font-style:italic">
         Marque as realizadas hoje na caixinha — a quantidade e o local aparecem logo abaixo do item. Use ✏️/🗑️ para editar ou remover do cadastro.
       </p>
-      <button class="add-btn-full" onclick="abrirModalAtividade()">+ Adicionar Atividade Padrão</button>
+      <button class="add-btn-full" onclick="abrirModalAtividade()"><span style="color:var(--accent-soft)">+</span> Adicionar Atividade Padrão</button>
       <hr class="divider">
       <div class="quick-actions" style="margin-bottom:10px">
         <button class="quick-btn" onclick="marcarTodasAtividadesCheckbox(true)">✓ Marcar Todas</button>
@@ -1667,7 +1667,7 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
   <!-- SEGURANÇA -->
   <div class="config-pane" id="pane-seguranca">
     <div class="section">
-      <button class="add-btn-full" onclick="abrirModalEventoCadastro('seguranca')">+ Adicionar Tipo</button>
+      <button class="add-btn-full" onclick="abrirModalEventoCadastro('seguranca')"><span style="color:var(--accent-soft)">+</span> Adicionar Tipo</button>
       <hr class="divider">
       <div id="configSegList"></div>
     </div>
@@ -1676,7 +1676,7 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
   <!-- MEIO AMBIENTE -->
   <div class="config-pane" id="pane-meio_ambiente">
     <div class="section">
-      <button class="add-btn-full" onclick="abrirModalEventoCadastro('meio_ambiente')">+ Adicionar Tipo</button>
+      <button class="add-btn-full" onclick="abrirModalEventoCadastro('meio_ambiente')"><span style="color:var(--accent-soft)">+</span> Adicionar Tipo</button>
       <hr class="divider">
       <div id="configAmbList"></div>
     </div>
@@ -3280,7 +3280,7 @@ function gerarPdfRDO() {
         ${day.observacoesDia && day.observacoesDia.trim() ? `
         <div class="section-title" style="page-break-before: auto;">OBSERVAÇÕES DO DIA</div>
         <div style="background: #fdfdfd; padding: 12px; border: 1px solid #dee2e6; border-radius: 4px; font-size: 9pt; min-height: 60px;">
-            ${escHtml(day.observacoesDia.trim())}
+            ${day.observacoesDia.split('*').map(s => s.trim()).filter(Boolean).map(escHtml).join('<br>')}
         </div>` : ''}
 
         ${blocoFotos}
@@ -5008,7 +5008,7 @@ function renderConfigColab() {
     addWrap.style.padding = '8px 12px';
     const btnAdd = document.createElement('button');
     btnAdd.className = 'add-btn-full';
-    btnAdd.textContent = '+ Colaborador';
+    btnAdd.innerHTML = '<span style="color:var(--accent-soft)">+</span> Colaborador';
     btnAdd.addEventListener('click', () => abrirModalColaborador(cat.id));
     addWrap.appendChild(btnAdd);
     body.appendChild(addWrap);
@@ -5951,7 +5951,8 @@ function buildRelatorio(day) {
   // Observações do Dia
   if (day.observacoesDia && day.observacoesDia.trim()) {
     txt += `\n${divisor}\n\n`;
-    txt += `*📝 Observações do Dia*\n${day.observacoesDia.trim()}\n`;
+    txt += `*📝 Observações do Dia*\n`;
+    day.observacoesDia.split('*').map(s => s.trim()).filter(Boolean).forEach(o => txt += `• ${o}\n`);
   }
 
   // Resumos acumulados — semana, mês e ano do dia do relatório (não de "hoje"),
