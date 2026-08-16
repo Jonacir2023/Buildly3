@@ -191,6 +191,7 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
 .btn-rdo{border-top-color:var(--accent)}
 .btn-medicao{border-top-color:var(--accent)}
 .btn-docs{border-top-color:var(--accent)}
+.btn-manutencao{border-top-color:var(--accent)}
 .home-footer{text-align:center;color:rgba(0,0,0,.4);font-size:10px;padding:4px 16px 0;margin-top:auto}
 .home-footer a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(0,0,0,.3)}
 .home-footer a:hover{border-bottom-color:var(--ink)}
@@ -320,20 +321,18 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
         <div class="home-button-badge">Ativo</div>
       </div>
 
-      <!-- 5. Medição (Reserved) -->
-      <div class="home-button btn-medicao disabled">
+      <!-- 5. Medição -->
+      <div class="home-button btn-medicao" onclick="switchTab('medicao', this)">
         <div class="home-button-icon">📐</div>
         <div class="home-button-title">Medição</div>
-        <div class="home-button-desc">Em desenvolvimento</div>
-        <div class="home-button-badge">Em breve</div>
+        <div class="home-button-desc">Cliente e terceiros</div>
       </div>
 
-      <!-- 6. Documentos (Reserved) -->
-      <div class="home-button btn-docs disabled">
+      <!-- 6. Documentos -->
+      <div class="home-button btn-docs" onclick="switchTab('documentos', this)">
         <div class="home-button-icon">📄</div>
         <div class="home-button-title">Documentos</div>
-        <div class="home-button-desc">Em desenvolvimento</div>
-        <div class="home-button-badge">Em breve</div>
+        <div class="home-button-desc">Contrato e orçamento</div>
       </div>
 
       <!-- 7. Obras -->
@@ -355,6 +354,13 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
         <div class="home-button-icon">🌦️</div>
         <div class="home-button-title">Resumo do Tempo</div>
         <div class="home-button-desc">Condições climáticas</div>
+      </div>
+
+      <!-- 10. Manutenção -->
+      <div class="home-button btn-manutencao" onclick="switchTab('manutencao', this)">
+        <div class="home-button-icon">🛠️</div>
+        <div class="home-button-title">Manutenção</div>
+        <div class="home-button-desc">Status e mural da obra</div>
       </div>
     </div>
 
@@ -656,6 +662,21 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
   <iframe id="resumo-tempo-iframe" src="resumo-tempo.html" style="width:100%;height:calc(100vh - 140px);border:none;background:#f0ece7;display:block;margin:0;padding:0" frameborder="0" allow="geolocation; microphone; camera"></iframe>
 </div>
 
+<!-- MEDIÇÃO PAGE (medições com cliente e terceiros) -->
+<div class="page" id="page-medicao">
+  <iframe id="medicao-iframe" src="medicoes.html" style="width:100%;height:calc(100vh - 140px);border:none;background:#f0ece7;display:block;margin:0;padding:0" frameborder="0" allow="geolocation; microphone; camera"></iframe>
+</div>
+
+<!-- DOCUMENTOS PAGE (contrato, cronograma, orçamento + alertas) -->
+<div class="page" id="page-documentos">
+  <iframe id="documentos-iframe" src="documentos.html" style="width:100%;height:calc(100vh - 140px);border:none;background:#f0ece7;display:block;margin:0;padding:0" frameborder="0" allow="geolocation; microphone; camera"></iframe>
+</div>
+
+<!-- MANUTENÇÃO PAGE (painel de status + mural da obra) -->
+<div class="page" id="page-manutencao">
+  <iframe id="manutencao-iframe" src="manutencao.html" style="width:100%;height:calc(100vh - 140px);border:none;background:#f0ece7;display:block;margin:0;padding:0" frameborder="0" allow="geolocation; microphone; camera"></iframe>
+</div>
+
 <!-- OBRA PAGE (cadastro compartilhado entre todos os apps) -->
 <div class="page" id="page-obra">
   <div class="notif" id="notif-obra"></div>
@@ -859,6 +880,11 @@ function switchTab(tab, el) {
     const ifr = document.getElementById('resumo-tempo-iframe');
     if (ifr && ifr.contentWindow && ifr.contentWindow.atualizarResumoTempo) {
       ifr.contentWindow.atualizarResumoTempo();
+    }
+  } else if (tab === 'manutencao') {
+    const ifr = document.getElementById('manutencao-iframe');
+    if (ifr && ifr.contentWindow && ifr.contentWindow.atualizarManutencao) {
+      ifr.contentWindow.atualizarManutencao();
     }
   }
 }
