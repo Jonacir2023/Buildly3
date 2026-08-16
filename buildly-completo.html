@@ -1903,7 +1903,18 @@ async function checkinCarregarHistoricoDoServidor() {
       const chave = String(c.id);
       const existente = porId.get(chave);
       if (existente) {
-        if (c.status && existente.status !== c.status) { existente.status = c.status; atualizados++; }
+        // O status do servidor NÃO pode passar por cima de decisão tomada
+        // aqui. Dois casos protegem o que o usuário fez:
+        //  - statusLocalEm: mudou no app e ainda não subiu para a planilha;
+        //  - statusTravadoEm = hoje: a reunião de hoje já foi salva, então o
+        //    dia está fechado e não muda mais.
+        // Sem isso, o botão Atualizar devolvia o status antigo da planilha e
+        // desfazia a reunião que acabara de ser registrada.
+        const mudouAqui = !!existente.statusLocalEm;
+        const diaFechado = existente.statusTravadoEm === checkinDataDeHoje();
+        if (c.status && existente.status !== c.status && !mudouAqui && !diaFechado) {
+          existente.status = c.status; atualizados++;
+        }
       } else {
         const novo = {
           id: c.id, assunto: c.assunto, desc: c.desc || '',
@@ -2239,6 +2250,10 @@ function checkinMoverCard(id, status) {
   if (a) {
     a.status = status;
     if (status === 'concluido') a.concluidoEm = Date.now();
+    // Marca que este status foi mudado aqui e ainda não foi para a planilha.
+    // Enquanto essa marca existir, o botão Atualizar não pode sobrescrever
+    // a mudança com o valor antigo que ainda está no servidor.
+    a.statusLocalEm = Date.now();
     checkinS.set('assuntos', checkinAssuntos);
     checkinRenderKanban();
     checkinAtualizarContadores();
@@ -2253,10 +2268,29 @@ function checkinMoverCard(id, status) {
 // da Pauta e do histórico do Check-in na planilha.
 async function checkinCarregarDaPlanilha() {
   checkinNotify('Atualizando da planilha...', 'var(--blue)');
+  // Primeiro EMPURRA o que mudou aqui e ainda não subiu (por exemplo, uma
+  // reunião salva sem internet), só depois BUSCA. Na ordem inversa a
+  // planilha devolveria o valor velho por cima do novo. Sem este reenvio, o
+  // pendente ficaria preso até a próxima reunião salva — e quando a trava do
+  // dia vencesse, o status antigo voltaria.
+  await checkinEnviarStatusPendentes();
   await Promise.all([
     checkinCarregarAssuntosDaPauta(),
     checkinCarregarHistoricoDoServidor()
   ]);
+}
+
+// Reenvia à planilha os status que mudaram aqui e ainda não foram aceitos.
+async function checkinEnviarStatusPendentes() {
+  checkinAssuntos = checkinS.get('assuntos') || checkinAssuntos;
+  const pendentes = checkinAssuntos.filter(a => a.statusLocalEm && a.id);
+  if (!pendentes.length) return;
+  let enviados = 0;
+  for (const a of pendentes) {
+    if (await checkinEnviarStatus(a.id, a.status)) { delete a.statusLocalEm; enviados++; }
+  }
+  checkinS.set('assuntos', checkinAssuntos);
+  if (enviados) checkinNotify('✅ ' + enviados + ' status pendente(s) enviado(s) à planilha', '#2d6a40');
 }
 
 function checkinCardAssuntoHTML(a) {
@@ -2389,7 +2423,12 @@ function checkinRemoverAssunto(id) {
   }).catch(e => console.warn('Check-in: não foi possível remover na planilha:', e.message));
 }
 
-function checkinSalvarReuniao() {
+// Salvar a reunião fecha o dia: os status passam a valer como registrados.
+// Antes isto só guardava um retrato aqui no navegador — a planilha continuava
+// com os status antigos, e o botão Atualizar trazia os antigos de volta por
+// cima. Agora a gravação vai também para a planilha e o dia fica travado.
+async function checkinSalvarReuniao() {
+  const hoje = checkinDataDeHoje();
   const reuniao = {
     id: Date.now(),
     data: document.getElementById('checkin-ci-data').value,
@@ -2398,7 +2437,55 @@ function checkinSalvarReuniao() {
   };
   checkinReunioes.push(reuniao);
   checkinS.set('reunioes', checkinReunioes);
+
+  // Trava o dia ANTES de falar com a rede: mesmo que a internet caia, o
+  // Atualizar já não desfaz o que acabou de ser registrado.
+  checkinAssuntos.forEach(a => { a.statusTravadoEm = hoje; });
+  checkinS.set('assuntos', checkinAssuntos);
   checkinNotify('Reunião salva!');
+
+  // Leva os status alterados para a planilha, para que ela pare de devolver
+  // o valor antigo. Só sobem os que mudaram aqui e ainda não subiram.
+  const pendentes = checkinAssuntos.filter(a => a.statusLocalEm && a.id);
+  if (!pendentes.length) return;
+
+  let enviados = 0;
+  for (const a of pendentes) {
+    const ok = await checkinEnviarStatus(a.id, a.status);
+    if (ok) { delete a.statusLocalEm; enviados++; }
+  }
+  checkinS.set('assuntos', checkinAssuntos);
+
+  if (enviados === pendentes.length) {
+    checkinNotify('✅ Reunião salva e status gravados na planilha', '#2d6a40');
+  } else {
+    // O dado local está seguro (travado); só a planilha ficou para trás.
+    checkinNotify('⚠️ Reunião salva aqui, mas ' + (pendentes.length - enviados) +
+      ' status não foram para a planilha. Toque em Atualizar quando tiver internet.', '#c99500');
+  }
+}
+
+// Data de hoje no formato AAAA-MM-DD, no fuso do aparelho.
+function checkinDataDeHoje() {
+  const d = new Date();
+  const tz = d.getTimezoneOffset() * 60000;
+  return new Date(d - tz).toISOString().slice(0, 10);
+}
+
+// Envia um status para a planilha. Devolve true só se a planilha confirmar.
+async function checkinEnviarStatus(id, status) {
+  try {
+    const resp = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ path: 'pauta', action: 'atualizar-status', id: id, status: status })
+    });
+    const data = await resp.json().catch(() => null);
+    return !!(data && data.status === 'ok');
+  } catch (e) {
+    console.warn('Check-in: status não enviado para a planilha:', e.message);
+    return false;
+  }
 }
 
 function checkinCapturar() {
