@@ -1215,6 +1215,33 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
      O max-width evita estouro caso o navegador imponha margem maior que 10mm. */
   .pdf-doc { width: 190mm !important; max-width: 100% !important; margin: 0 auto !important; padding: 0 !important; box-shadow: none !important; transform: none !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   DESKTOP — acima de 900px o app deixa de ser uma coluna de 480px
+   (tamanho de celular) e passa a ocupar a tela. Abaixo disso nada
+   muda: no celular continua exatamente como sempre foi.
+   ══════════════════════════════════════════════════════════════ */
+@media (min-width: 900px) {
+  body { max-width: 1100px; }
+  .topbar, .header, .tabs { max-width: 1100px !important; }
+  /* Conteúdo em duas colunas: com 1100px de largura, um campo de
+     texto sozinho na linha fica ruim de ler e de preencher */
+  .view.active {
+    display: grid;
+    /* auto-fit: com várias seções vira duas colunas; com uma só, ela
+       ocupa a linha inteira em vez de deixar metade da tela vazia */
+    grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
+    gap: 0 14px;
+    align-items: start;
+  }
+  /* Trava a largura de uma seção sozinha: formulário de 1100px de
+     largura é desconfortável de ler e preencher */
+  .view.active > * { max-width: 700px; }
+  /* Modais continuam estreitos de propósito */
+  .modal { max-width: 560px; }
+  /* A visualização do PDF ocupa a tela toda, fora da grade */
+  #pdfOverlay { max-width: none; }
+}
 </style>
 </head>
 <body>

@@ -270,6 +270,28 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
 .ultimas-data{font-size:11px;color:var(--ink-faint);font-family:var(--serif);font-weight:700;margin-bottom:3px}
 .ultimas-titulo{font-family:var(--serif);font-size:14px;font-weight:800;color:var(--ink);margin-bottom:6px}
 .ultimas-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* ══════════════════════════════════════════════════════════════
+   DESKTOP — acima de 900px o app deixa de ser uma coluna de 480px
+   (tamanho de celular) e passa a ocupar a tela. Abaixo disso nada
+   muda: no iPhone continua exatamente como sempre foi.
+   Os !important existem porque vários cabeçalhos fixos trazem o
+   max-width:480px em style inline, que só perde para !important.
+   ══════════════════════════════════════════════════════════════ */
+@media (min-width: 900px) {
+  body { max-width: 1100px; }
+  .hdr, .tabs, #obra-scroll-body { max-width: 1100px !important; }
+  /* 5 colunas de botões aproveitam a largura sem esticar os cards */
+  .home-grid { grid-template-columns: repeat(5, 1fr); gap: 14px; padding: 12px 16px 0; }
+  /* Os apps em iframe têm cabeçalho próprio; sobra mais altura útil */
+  .page iframe { height: calc(100vh - 76px) !important; }
+  /* Formulário da Obra em duas colunas — campo de texto com 1100px
+     de largura fica ruim de ler e de preencher */
+  #obra-scroll-body .sec { max-width: 640px; }
+  /* Modais continuam estreitos de propósito: caixa de diálogo larga
+     demais atrapalha em vez de ajudar */
+  .modal { max-width: 560px; }
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
