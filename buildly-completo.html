@@ -294,9 +294,33 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
   /* Kanban do Check-in: as 4 colunas lado a lado em vez de empilhadas */
   #checkin-kanban-checkin { flex-direction: row; align-items: flex-start; gap: 12px; }
   #checkin-kanban-checkin > .kol { flex: 1; min-width: 0; }
-  /* Formulário da Obra em duas colunas — campo de texto com 1100px
-     de largura fica ruim de ler e de preencher */
-  #obra-scroll-body .sec { max-width: 640px; }
+  /* Obras, Pautas e Check-in seguem a mesma regra dos outros apps: os
+     blocos acompanham a largura das abas, e quem ganha limite é o campo
+     de digitação. Assim toda tela do app fecha na mesma coluna. */
+  #obra-scroll-body { padding: 16px 0; }
+  #obra-scroll-body .sec,
+  #page-pauta .sec,
+  #page-checkin .sec { margin-left: 16px; margin-right: 16px; }
+  /* O cadastro da Obra tem muitos campos: em duas colunas a tela deixa
+     de ser uma fila comprida com metade da largura vazia, e o formulário
+     inteiro fecha na mesma borda à direita. */
+  #obra-scroll-body .sec { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; align-content: start; }
+  #obra-scroll-body .sec-title,
+  #obra-scroll-body .frow-2,
+  #obra-scroll-body .btn-full { grid-column: 1 / -1; }
+  #obra-scroll-body .sec input,
+  #obra-scroll-body .sec textarea,
+  #obra-scroll-body .sec select { max-width: none; }
+  /* A seção do logo não é um formulário de campos: são a miniatura e dois
+     botões que andam juntos. Na grade eles se separavam em células
+     diferentes, então essa seção fica fora dela. */
+  #obra-scroll-body .sec:has(#obra-logo-preview) { display: block; }
+  #page-pauta input:not([type="checkbox"]):not([type="radio"]),
+  #page-pauta textarea,
+  #page-pauta select,
+  #page-checkin input:not([type="checkbox"]):not([type="radio"]),
+  #page-checkin textarea,
+  #page-checkin select { max-width: 660px; }
   /* Modais continuam estreitos de propósito: caixa de diálogo larga
      demais atrapalha em vez de ajudar */
   .modal { max-width: 560px; }

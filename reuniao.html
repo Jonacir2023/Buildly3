@@ -1235,9 +1235,16 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
     gap: 0 14px;
     align-items: start;
   }
-  /* Trava a largura de uma seção sozinha: formulário de 1100px de
-     largura é desconfortável de ler e preencher */
-  .view.active > * { max-width: 700px; }
+  /* O conteúdo acompanha a largura da barra de abas e do cabeçalho:
+     as três bordas se alinham na mesma coluna, e é isso que dá a
+     sensação de peça inteira em vez de blocos soltos no meio da tela. */
+  .view.active > * { max-width: none; }
+  /* O campo de digitação é que ganha limite, não o cartão: texto muito
+     largo cansa a leitura e a mão viaja demais até o fim da linha.
+     Em duas colunas o campo já é menor que isso, então nada muda lá. */
+  .view.active input:not([type="checkbox"]):not([type="radio"]),
+  .view.active textarea,
+  .view.active select { max-width: 660px; }
   /* Modais continuam estreitos de propósito */
   .modal { max-width: 560px; }
   /* A visualização do PDF ocupa a tela toda, fora da grade */
