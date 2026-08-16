@@ -93,7 +93,11 @@ tr:hover{background:#f9f7f5}
    DESKTOP — acima de 900px o app ocupa a tela em vez de ficar numa
    coluna de 480px (tamanho de celular). No celular nada muda.
    ══════════════════════════════════════════════════════════════ */
-@media (min-width: 900px) {
+/* 860 e nao 900: o iframe pode ficar alguns pixels mais estreito que a
+   janela (barra de rolagem, bordas). Com o mesmo numero dos dois lados,
+   o app de dentro corria o risco de continuar em formato de celular
+   enquanto o de fora ja estava em desktop. */
+@media (min-width: 860px) {
   body { max-width: 1100px; }
   .hdr, .tabs { max-width: 1100px !important; }
   .page.active { display: grid; grid-template-columns: repeat(auto-fit, minmax(430px, 1fr)); gap: 0 14px; align-items: start; }

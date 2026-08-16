@@ -285,6 +285,15 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
   .home-grid { grid-template-columns: repeat(5, 1fr); gap: 14px; padding: 12px 16px 0; }
   /* Os apps em iframe têm cabeçalho próprio; sobra mais altura útil */
   .page iframe { height: calc(100vh - 76px) !important; }
+  /* Sem o padding lateral, o iframe recebe a largura cheia da página. Com
+     ele, o app de dentro ficava 32px mais estreito que o de fora e, numa
+     janela de ~900px, caía abaixo do limite de desktop: o app externo
+     virava desktop e o de dentro continuava no formato de celular. */
+  #page-rdo, #page-custos, #page-reuniao, #page-resumo-tempo,
+  #page-medicao, #page-documentos, #page-manutencao { padding: 0; }
+  /* Kanban do Check-in: as 4 colunas lado a lado em vez de empilhadas */
+  #checkin-kanban-checkin { flex-direction: row; align-items: flex-start; gap: 12px; }
+  #checkin-kanban-checkin > .kol { flex: 1; min-width: 0; }
   /* Formulário da Obra em duas colunas — campo de texto com 1100px
      de largura fica ruim de ler e de preencher */
   #obra-scroll-body .sec { max-width: 640px; }

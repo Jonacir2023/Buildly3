@@ -1218,7 +1218,11 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
    (tamanho de celular) e passa a ocupar a tela. Abaixo disso nada
    muda: no celular continua exatamente como sempre foi.
    ══════════════════════════════════════════════════════════════ */
-@media (min-width: 900px) {
+/* 860 e nao 900: o iframe pode ficar alguns pixels mais estreito que a
+   janela (barra de rolagem, bordas). Com o mesmo numero dos dois lados,
+   o app de dentro corria o risco de continuar em formato de celular
+   enquanto o de fora ja estava em desktop. */
+@media (min-width: 860px) {
   body { max-width: 1100px; }
   .topbar, .header, .tabs { max-width: 1100px !important; }
   /* Conteúdo em duas colunas: com 1100px de largura, um campo de
