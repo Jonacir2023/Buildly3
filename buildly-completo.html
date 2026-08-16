@@ -350,12 +350,11 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
         <div class="home-button-desc">Atas de reunião</div>
       </div>
 
-      <!-- 9. Resumo do Tempo (Reserved) -->
-      <div class="home-button btn-tempo disabled">
+      <!-- 9. Resumo do Tempo -->
+      <div class="home-button btn-tempo" onclick="switchTab('resumo-tempo', this)">
         <div class="home-button-icon">🌦️</div>
         <div class="home-button-title">Resumo do Tempo</div>
-        <div class="home-button-desc">Em desenvolvimento</div>
-        <div class="home-button-badge">Em breve</div>
+        <div class="home-button-desc">Condições climáticas</div>
       </div>
     </div>
 
@@ -652,6 +651,11 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
   <iframe id="reuniao-iframe" src="reuniao.html" style="width:100%;height:calc(100vh - 140px);border:none;background:#f0ece7;display:block;margin:0;padding:0" frameborder="0" allow="geolocation; microphone; camera"></iframe>
 </div>
 
+<!-- RESUMO DO TEMPO PAGE (condições climáticas, alimentado pelo RDO) -->
+<div class="page" id="page-resumo-tempo">
+  <iframe id="resumo-tempo-iframe" src="resumo-tempo.html" style="width:100%;height:calc(100vh - 140px);border:none;background:#f0ece7;display:block;margin:0;padding:0" frameborder="0" allow="geolocation; microphone; camera"></iframe>
+</div>
+
 <!-- OBRA PAGE (cadastro compartilhado entre todos os apps) -->
 <div class="page" id="page-obra">
   <div class="notif" id="notif-obra"></div>
@@ -702,6 +706,18 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
       <div class="frow"><label>Encerramento sexta-feira</label><input type="time" id="obra-encerramento-sexta" value="16:00"/></div>
       <div class="frow"><label>Encerramento sábado</label><input type="time" id="obra-encerramento-sabado" value="16:00"/></div>
       <button class="btn btn-primary btn-full" onclick="obraSalvar()">💾 SALVAR OBRA</button>
+    </div>
+
+    <div class="sec" style="border-color:var(--red)">
+      <div class="sec-title" style="color:var(--red)">🧹 Remover dados de outra obra</div>
+      <p style="font-size:12px;color:var(--ink-faint);margin-bottom:8px">
+        Use apenas se o Diário de Obras (RDO) de uma obra ERRADA (ex.: um backup
+        importado por engano) ficou salvo neste navegador. Isso apaga só o RDO
+        daquela obra específica — não mexe na obra atual nem em Pauta/Check-in.
+      </p>
+      <div id="obra-remover-lista" style="font-size:11px;color:var(--ink-faint);margin-bottom:8px"></div>
+      <input type="text" id="obra-remover-nome" placeholder="Nome exato da obra a remover (ex.: Suzano)"/>
+      <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red);margin-top:8px" onclick="obraRemoverDadosDeOutraObra()">🗑️ Apagar RDO dessa obra</button>
     </div>
   </div>
 </div>
@@ -839,6 +855,11 @@ function switchTab(tab, el) {
     checkinInit();
   } else if (tab === 'obra') {
     obraInit();
+  } else if (tab === 'resumo-tempo') {
+    const ifr = document.getElementById('resumo-tempo-iframe');
+    if (ifr && ifr.contentWindow && ifr.contentWindow.atualizarResumoTempo) {
+      ifr.contentWindow.atualizarResumoTempo();
+    }
   }
 }
 
@@ -870,6 +891,47 @@ function obraInit() {
   document.getElementById('obra-encerramento-sexta').value = o.encerramentoSexta || '16:00';
   document.getElementById('obra-encerramento-sabado').value = o.encerramentoSabado || '16:00';
   obraRenderLogoPreview(o.logo);
+  obraListarSalvas();
+}
+
+// Lista os nomes de obra que têm um Diário de Obras (RDO) salvo neste
+// navegador, para ajudar a identificar o nome exato antes de remover.
+function obraListarSalvas() {
+  const el = document.getElementById('obra-remover-lista');
+  if (!el) return;
+  const nomes = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.indexOf('diario_obras_v4_state_') === 0) {
+      let nome = k.replace('diario_obras_v4_state_', '');
+      try {
+        const s = JSON.parse(localStorage.getItem(k));
+        if (s && s.obra && s.obra.nome) nome = s.obra.nome;
+      } catch (e) { /* mantém o slug como nome */ }
+      nomes.push(nome);
+    }
+  }
+  el.textContent = nomes.length
+    ? 'RDOs salvos neste navegador: ' + nomes.join(', ')
+    : 'Nenhum RDO salvo neste navegador ainda.';
+}
+
+// Apaga o Diário de Obras (estado + histórico) de UMA obra específica,
+// identificada pelo nome. Não mexe na obra atualmente em uso nem em
+// Pauta/Check-in — só remove as chaves 'diario_obras_v4_*' daquele nome.
+function obraRemoverDadosDeOutraObra() {
+  const campo = document.getElementById('obra-remover-nome');
+  const nome = (campo.value || '').trim();
+  if (!nome) { obraNotify('Digite o nome exato da obra a remover', 'var(--red)'); return; }
+  const slug = nome.replace(/\s+/g, '_').toLowerCase();
+  const chaves = ['diario_obras_v4_state_' + slug, 'diario_obras_v4_history_' + slug];
+  const existentes = chaves.filter(k => localStorage.getItem(k) !== null);
+  if (!existentes.length) { obraNotify('Nenhum RDO encontrado com o nome "' + nome + '"', 'var(--red)'); return; }
+  if (!confirm(`Isso vai apagar PERMANENTEMENTE o Diário de Obras (RDO) salvo com o nome "${nome}" neste navegador. Não tem como desfazer. Confirma?`)) return;
+  existentes.forEach(k => localStorage.removeItem(k));
+  campo.value = '';
+  obraListarSalvas();
+  obraNotify('✓ Dados de "' + nome + '" apagados');
 }
 
 function obraRenderLogoPreview(logo) {
