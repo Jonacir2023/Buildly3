@@ -826,7 +826,7 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
       <button class="modal-close" onclick="fecharModalPerguntar()">✕</button>
     </div>
     <p style="font-size:12px;color:var(--ink-faint);margin:-8px 0 12px;font-style:italic">
-      Pergunte qualquer coisa sobre o que já está na planilha — RDOs, pautas, check-ins e notas fiscais.
+      Pergunte sobre RDOs, pautas, check-ins, notas fiscais, medições, documentos e mural. Ex.: "está tudo batendo com o contrato, orçamento e prazo?"
     </p>
     <div class="frow">
       <textarea id="perguntarInput" style="min-height:70px" placeholder="Ex.: Quantos bags de areia fizemos em julho? Quais pautas estão atrasadas? Quanto gastamos com cimento?"></textarea>
@@ -1058,6 +1058,78 @@ document.getElementById('modalPerguntar').addEventListener('click', function(e) 
   if (e.target === this) fecharModalPerguntar();
 });
 
+// Reúne o que existe só neste navegador (Medições, Documentos e Mural) num
+// resumo compacto para o robô conseguir cruzar com o que já lê da planilha.
+// É SÓ LEITURA: nada aqui grava, altera ou apaga qualquer dado — se algo der
+// errado, devolve o que conseguiu montar e o robô segue com o resto.
+// O conteúdo de arquivos anexados (base64) fica de fora de propósito: só o
+// título/categoria interessa, e o arquivo inteiro estouraria o limite do envio.
+function montarContextoLocal() {
+  const ctx = {};
+
+  try {
+    const obra = JSON.parse(localStorage.getItem('b3_obra') || '{}');
+    if (obra && Object.keys(obra).length) {
+      ctx.obra = {
+        nome: obra.nome || '', empresa: obra.empresa || '', local: obra.local || '',
+        descricao: obra.descricao || '', contrato: obra.contrato || '', cliente: obra.cliente || '',
+        gestor: obra.gestor || '', dataInicio: obra.dataInicio || '', dataTermino: obra.dataTermino || ''
+      };
+    }
+  } catch (e) { /* obra fica de fora */ }
+
+  try {
+    const contratos = JSON.parse(localStorage.getItem('med_contratos') || '[]');
+    if (contratos.length) {
+      ctx.medicoes = contratos.map(c => ({
+        nome: c.nome, tipo: c.tipo === 'cliente' ? 'Cliente' : 'Empreiteiro/Terceiro',
+        empresa: c.empresa || '', numeroContrato: c.numeroContrato || '',
+        especialidade: c.especialidade || '',
+        itens_do_escopo: (c.itens || []).map(it => ({
+          item: it.item, descricao: it.descricao, unidade: it.unidade,
+          quantidade_contratada: it.quantidade, valor_unitario: it.valorUnitario,
+          total_do_item: (it.quantidade || 0) * (it.valorUnitario || 0)
+        })),
+        medicoes_realizadas: (c.medicoes || []).map(m => ({
+          numero: m.numero, mes: m.mesReferencia,
+          periodo: `${m.dataInicio} a ${m.dataFim}`,
+          itens_medidos: (c.itens || []).map(it => ({
+            item: it.item, descricao: it.descricao,
+            quantidade_medida: m.linhas[it.id] || 0,
+            valor_medido: (m.linhas[it.id] || 0) * (it.valorUnitario || 0)
+          })).filter(l => l.quantidade_medida > 0),
+          total_da_medicao: (c.itens || []).reduce((s, it) => s + (m.linhas[it.id] || 0) * (it.valorUnitario || 0), 0)
+        }))
+      }));
+    }
+  } catch (e) { /* medições ficam de fora */ }
+
+  try {
+    const documentos = JSON.parse(localStorage.getItem('doc_arquivos') || '[]');
+    if (documentos.length) {
+      ctx.documentos = documentos.map(d => ({
+        categoria: d.categoria, titulo: d.titulo,
+        valor_do_orcamento: d.valorOrcamento,
+        data_termino_cronograma: d.dataCronograma,
+        notas: d.notas || '', atualizado_em: d.atualizadoEm,
+        guardado_como: d.tipo === 'arquivo' ? 'arquivo anexado' : 'link'
+      }));
+    }
+  } catch (e) { /* documentos ficam de fora */ }
+
+  try {
+    const mural = JSON.parse(localStorage.getItem('manut_mural') || '[]');
+    if (mural.length) {
+      ctx.mural_da_obra = mural
+        .sort((a, b) => b.criadoEm - a.criadoEm)
+        .slice(0, 50)
+        .map(m => ({ autor: m.autor, mensagem: m.texto, quando: new Date(m.criadoEm).toISOString() }));
+    }
+  } catch (e) { /* mural fica de fora */ }
+
+  return Object.keys(ctx).length ? ctx : null;
+}
+
 async function enviarPergunta() {
   const input = document.getElementById('perguntarInput');
   const pergunta = input.value.trim();
@@ -1071,12 +1143,15 @@ async function enviarPergunta() {
   btn.disabled = true;
 
   try {
-    // Só a pergunta viaja: o Apps Script monta o contexto lendo a planilha,
-    // então o robô não depende de estado de nenhuma tela do app.
+    // O Apps Script monta sozinho o contexto da planilha (Diário, Pauta,
+    // Check-in, Notas Fiscais). Medições, Documentos e Mural só existem neste
+    // navegador, então viajam junto com a pergunta — ver montarContextoLocal().
+    // Se o Apps Script ainda for a versão antiga, ele simplesmente ignora este
+    // campo e o robô continua respondendo como antes.
     const resp = await fetch(APPS_SCRIPT_URL + '?path=ia&action=perguntar', {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ pergunta })
+      body: JSON.stringify({ pergunta, contextoLocal: montarContextoLocal() })
     });
     const json = await resp.json().catch(() => null);
     respostaBox.textContent = (json && json.resposta) || '❌ Não foi possível obter resposta.';
