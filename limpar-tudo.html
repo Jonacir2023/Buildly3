@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Limpar dados locais — Buildly3</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+       background:#0f172a;color:#e2e8f0;padding:20px;line-height:1.6}
+  .wrap{max-width:640px;margin:0 auto}
+  h1{font-size:22px;margin-bottom:6px}
+  .sub{color:#94a3b8;font-size:14px;margin-bottom:20px}
+  .card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:18px;margin-bottom:16px}
+  .card h2{font-size:15px;color:#fbbf24;margin-bottom:10px}
+  ul{list-style:none}
+  li{padding:6px 0;border-bottom:1px solid #334155;font-size:13px;
+     display:flex;justify-content:space-between;gap:10px}
+  li:last-child{border-bottom:none}
+  li .k{font-family:ui-monospace,Menlo,monospace;color:#cbd5e1;word-break:break-all}
+  li .t{color:#64748b;white-space:nowrap;font-size:12px}
+  .vazio{color:#64748b;font-size:13px;padding:6px 0}
+  button{width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;
+         font-weight:600;cursor:pointer;margin-top:8px}
+  .btn-danger{background:#dc2626;color:#fff}
+  .btn-danger:disabled{background:#475569;color:#94a3b8;cursor:default}
+  .aviso{background:#422006;border:1px solid #a16207;color:#fde68a;
+         border-radius:10px;padding:14px;font-size:13px;margin-bottom:16px}
+  #resultado{margin-top:14px;font-size:13px;white-space:pre-wrap;
+             font-family:ui-monospace,Menlo,monospace;color:#4ade80}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧹 Limpar dados locais</h1>
+  <p class="sub">Apaga do <strong>aparelho onde esta página estiver aberta</strong> tudo o que o
+  Buildly3 guardou: RDOs, pautas, check-ins, atas, medições, documentos, mural e o cadastro da obra.</p>
+
+  <div class="aviso">
+    ⚠️ Isto não tem desfazer. Rode em cada aparelho que usa o app —
+    Mac e iPhone guardam cópias separadas.
+  </div>
+
+  <div class="card">
+    <h2>O que será apagado deste aparelho</h2>
+    <ul id="lista"></ul>
+    <div class="vazio" id="vazio" style="display:none">Nada encontrado — este aparelho já está limpo.</div>
+  </div>
+
+  <button class="btn-danger" id="btn" onclick="limpar()">Apagar tudo agora</button>
+  <div id="resultado"></div>
+</div>
+
+<script>
+// Chaves e prefixos que o Buildly3 usa. Só é apagado o que casar com esta lista —
+// nada de outro app que compartilhe o mesmo endereço é tocado.
+var PREFIXOS = [
+  'b3_obra', 'obra_atual',
+  'pauta_', 'chk_', 'sync_',
+  'diario_', 'custo_',
+  'med_contratos', 'doc_arquivos', 'doc_notas_manuais',
+  'manut_mural', 'manut_ultimo_autor',
+  'reuniao_atas', 'ultimoBackupNuvem'
+];
+
+function alvos() {
+  var out = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var k = localStorage.key(i);
+    for (var j = 0; j < PREFIXOS.length; j++) {
+      if (k === PREFIXOS[j] || k.indexOf(PREFIXOS[j]) === 0) { out.push(k); break; }
+    }
+  }
+  return out.sort();
+}
+
+function tamanho(k) {
+  var v = localStorage.getItem(k) || '';
+  var kb = v.length / 1024;
+  return kb < 1 ? v.length + ' B' : kb.toFixed(1) + ' KB';
+}
+
+function listar() {
+  var ks = alvos();
+  var ul = document.getElementById('lista');
+  ul.innerHTML = ks.map(function(k) {
+    return '<li><span class="k">' + k + '</span><span class="t">' + tamanho(k) + '</span></li>';
+  }).join('');
+  document.getElementById('vazio').style.display = ks.length ? 'none' : '';
+  document.getElementById('btn').disabled = !ks.length;
+  return ks;
+}
+
+function limpar() {
+  var ks = alvos();
+  if (!ks.length) return;
+  if (!confirm('Apagar ' + ks.length + ' registro(s) deste aparelho? Não tem desfazer.')) return;
+  ks.forEach(function(k) { localStorage.removeItem(k); });
+  document.getElementById('resultado').textContent =
+    '✅ ' + ks.length + ' registro(s) apagado(s). Pode fechar esta página e abrir o app.';
+  listar();
+}
+
+listar();
+</script>
+</body>
+</html>

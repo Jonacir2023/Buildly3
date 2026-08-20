@@ -1,0 +1,50 @@
+CORREÇÃO — Check-in: status voltavam atrás ao apertar Atualizar
+
+No Terminal, cole:
+
+cd ~/Downloads && unzip -o checkinstatus.zip -d checkinstatus && cp checkinstatus/*.py checkinstatus/*.json checkinstatus/*.txt ~/Buildly3/ && cd ~/Buildly3 && python3 08_checkin_status.py && git add -u && git commit -m "fix: salvar reuniao grava os status; atualizar nao desfaz mais" && git push -u origin main
+
+Pode aplicar antes ou depois do desktop3 — testei as duas ordens.
+
+--------------------------------------------------------------------
+POR QUE ACONTECIA
+--------------------------------------------------------------------
+Encontrei três coisas encadeadas:
+
+1. Mover um card no Kanban mudava o status SÓ neste navegador. A
+   planilha nunca ficava sabendo.
+
+2. "Salvar Reunião" guardava apenas um retrato aqui no aparelho —
+   também não avisava a planilha. (Existia no código uma versão que
+   enviava, mas estava morta: foi sobrescrita por outra de mesmo nome
+   escrita mais abaixo no arquivo, e o navegador usa sempre a última.)
+
+3. Ao apertar Atualizar, o app buscava a planilha e copiava o status de
+   lá por cima do seu, sem nenhuma condição. Como a planilha ainda tinha
+   o valor antigo, tudo voltava atrás.
+
+--------------------------------------------------------------------
+O QUE MUDA
+--------------------------------------------------------------------
+- Salvar a Reunião agora GRAVA os status na planilha e FECHA O DIA:
+  a partir daí o Atualizar não mexe mais neles nesse dia.
+- Se a internet falhar na hora de salvar, o dado local fica protegido
+  do mesmo jeito e marcado como pendente. Você é avisado na tela.
+- O próprio botão Atualizar reenvia o que ficou pendente ANTES de
+  buscar — assim a planilha se acerta sozinha quando a internet volta.
+- No dia seguinte a trava sai e a sincronização normal volta: se
+  alguém mudar o status na planilha, o app aceita a mudança.
+
+--------------------------------------------------------------------
+COMO FOI TESTADO
+--------------------------------------------------------------------
+Simulei a planilha e comparei a versão publicada com a corrigida:
+
+  PUBLICADA HOJE: mover -> concluido | salvar -> concluido |
+                  ATUALIZAR -> afazer          (voltou atrás)
+  COM A CORREÇÃO: mover -> concluido | salvar -> concluido |
+                  ATUALIZAR -> concluido       (manteve)
+
+Também testei: salvar sem internet (status protegido e marcado como
+pendente), internet voltando no Atualizar (reenvia e a planilha se
+acerta) e o dia seguinte (volta a sincronizar normalmente).
