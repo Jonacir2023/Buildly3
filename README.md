@@ -104,6 +104,7 @@ Estrutura de uma nota fiscal:
       total: 1250.00
     }
   ],
+  foto: "data:image/jpeg;base64,...",  // opcional — foto da nota tirada pela câmera do iPhone; guardada localmente, sem leitura automática (OCR) dos dados
   criadoEm: 1722972360383
 }
 ```

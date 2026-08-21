@@ -171,6 +171,18 @@ tr:hover{background:#f9f7f5}
       <label>Observações</label>
       <textarea id="nf-observacoes" placeholder="Detalhes adicionais..."></textarea>
     </div>
+    <div class="frow">
+      <label>Foto da Nota</label>
+      <input type="file" id="nf-foto-input" accept="image/*" capture="environment"
+        style="display:none" onchange="onFotoNFSelecionada(event)"/>
+      <div id="nf-foto-preview" style="display:none;position:relative;max-width:220px;margin-bottom:8px">
+        <img id="nf-foto-img" style="width:100%;border-radius:8px;border:1.5px solid var(--line);display:block"/>
+        <button type="button" onclick="removerFotoNF()" title="Remover"
+          style="position:absolute;top:6px;right:6px;width:26px;height:26px;border:none;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:14px;line-height:1;cursor:pointer">✕</button>
+      </div>
+      <button type="button" class="btn btn-secondary btn-full btn-sm" id="nf-foto-btn"
+        onclick="document.getElementById('nf-foto-input').click()">📷 FOTOGRAFAR NOTA</button>
+    </div>
   </div>
 
   <div class="sec">
@@ -275,6 +287,64 @@ let categorias = S.get('categorias') || ['Material', 'Mão de Obra', 'Aluguel', 
 let notasFiscais = S.get('notasfiscais') || [];
 let responsaveis = S.get('responsaveis') || ['Jonacir', 'Aline', 'José'];
 let itensTemp = [];
+let fotoNFTemp = null;
+
+function comprimirFotoNF(file, maxDim, qualidade) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          const r = Math.min(maxDim / w, maxDim / h);
+          w = Math.round(w * r);
+          h = Math.round(h * r);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', qualidade));
+      };
+      img.onerror = () => reject(new Error('Imagem inválida'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('Falha ao ler arquivo'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function onFotoNFSelecionada(ev) {
+  const file = ev.target.files[0];
+  ev.target.value = '';
+  if (!file) return;
+  try {
+    fotoNFTemp = await comprimirFotoNF(file, 1280, 0.72);
+    renderFotoNFPreview();
+  } catch (err) {
+    notify('❌ Falha ao processar a foto: ' + err.message, '#b83228');
+  }
+}
+
+function removerFotoNF() {
+  fotoNFTemp = null;
+  renderFotoNFPreview();
+}
+
+function renderFotoNFPreview() {
+  const preview = document.getElementById('nf-foto-preview');
+  const img = document.getElementById('nf-foto-img');
+  const btn = document.getElementById('nf-foto-btn');
+  if (fotoNFTemp) {
+    img.src = fotoNFTemp;
+    preview.style.display = 'block';
+    btn.textContent = '📷 TROCAR FOTO';
+  } else {
+    preview.style.display = 'none';
+    btn.textContent = '📷 FOTOGRAFAR NOTA';
+  }
+}
 
 function notify(msg, cor = '#2d6a40') {
   const n = document.getElementById('notif');
@@ -397,11 +467,18 @@ function salvarNotaFiscal() {
     observacoes,
     itens: [...itensTemp],
     total_nf,
+    foto: fotoNFTemp || null,
     criado_em: new Date().toISOString()
   };
 
   notasFiscais.push(nf);
-  S.set('notasfiscais', notasFiscais);
+  try {
+    S.set('notasfiscais', notasFiscais);
+  } catch (err) {
+    notasFiscais.pop();
+    notify('❌ Sem espaço para salvar (foto muito pesada?). Tente sem foto ou apague notas antigas.', '#b83228');
+    return;
+  }
 
   document.getElementById('nf-numero').value = '';
   document.getElementById('nf-serie').value = '';
@@ -409,6 +486,8 @@ function salvarNotaFiscal() {
   document.getElementById('nf-fornecedor').value = '';
   document.getElementById('nf-observacoes').value = '';
   itensTemp = [];
+  fotoNFTemp = null;
+  renderFotoNFPreview();
   renderItensTemp();
   atualizarTotalNF();
 
@@ -438,6 +517,11 @@ function renderListar() {
         <span class="badge badge-blue">${nf.categoria}</span>
         <span class="badge badge-green">${nf.responsavel}</span>
       </div>
+      ${nf.foto ? `
+      <a href="${nf.foto}" target="_blank" rel="noopener">
+        <img src="${nf.foto}" alt="Foto da nota"
+          style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1.5px solid var(--line);margin-top:8px;display:block"/>
+      </a>` : ''}
       <div style="margin-top:8px;font-size:12px;color:var(--ink-soft)">
         <strong>${nf.itens.length} item(ns):</strong><br>
         ${nf.itens.map(i => `• ${i.descricao} (${i.quantidade} × R$ ${i.preco_unitario.toFixed(2)})`).join('<br>')}
