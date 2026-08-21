@@ -1,0 +1,8 @@
+{
+  "alwaysUpdateLinks": true,
+  "newLinkFormat": "shortest",
+  "useMarkdownLinks": false,
+  "attachmentFolderPath": "Recursos/Anexos",
+  "defaultViewMode": "source",
+  "promptDelete": true
+}
