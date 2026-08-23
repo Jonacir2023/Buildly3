@@ -1,140 +1,143 @@
 # Setup do Claude Code — 21 instalações
 
-Guia de instalação dos 7 plug-ins, 7 skills e 7 servidores MCP da lista
+Guia para os 7 plug-ins, 7 skills e 7 servidores MCP da lista
 "21 Coisas Pra Instalar No Claude".
 
-> **Rode estes comandos na SUA máquina**, no Claude Code local.
-> Eles não podem ser executados por uma sessão remota: o container é
-> efêmero e `/plugin` é um comando interativo do CLI.
+## Existem dois caminhos de instalação — e a lista mistura os dois
 
-## Legenda
+| Caminho | O que instala | Onde |
+|---|---|---|
+| **A. Customize (claude.ai)** | Catálogo oficial da Anthropic | Menu lateral → Customize |
+| **B. CLI do Claude Code** | Repositórios do GitHub | `/plugin marketplace add` |
 
-| Marca | Significado |
-|---|---|
-| ✅ | Repositório localizado e confirmado |
-| 🟡 | Já presente na sua conta — nada a instalar |
-| ⚠️ | **Não confirmado.** Verifique o repo antes de instalar |
+O passo a passo do autor descreve o **caminho A** e está correto como
+mecânica de UI. Mas **os nomes do carrossel dele não estão nesse
+catálogo** — são projetos de GitHub, que só entram pelo caminho B.
+
+Verificação feita no catálogo desta conta: buscar por `superpowers`,
+`gstack`, `caveman`, `repomix`, `claude-skills`, `marketingskills`,
+`claude-ads` e `ai-second-brain` em Plugins retorna apenas
+correspondências genéricas (marketing, canva, slack, qodo). Em Skills
+retorna **vazio**.
+
+Então: seguir só o print do autor não instala a lista do carrossel.
 
 ---
 
-## 1. Plug-ins
+## Caminho A — Customize (claude.ai)
 
-Cada `marketplace add` registra um repositório de terceiros cujo código roda
-no seu ambiente. Confira o repo antes de instalar.
+### Conectores (MCP)
+Customize → **Connectors** → "Connect" no serviço → autorizar.
 
-### ✅ marketingskills — CRO, copy, SEO, growth
+### Skills
+Customize → **Skills** → "+" → "Browse skills", ou upload de `.zip`.
+Exige **"Code execution and file creation"** habilitado nas configurações.
+
+### Plugins
+Customize → **Plugins** → "Browse plugins" → "Install".
+
+Duas restrições que valem saber antes:
+- Só em planos pagos (Pro, Max, Team, Enterprise).
+- Rodam em **Cowork e Code — não no Chat comum**. Se o seu uso é
+  conversar no app normal, plugin não vai atuar.
+
+### Equivalentes oficiais que você já tem disponíveis
+
+Quatro itens do carrossel têm equivalente no catálogo oficial. Preferir
+estes evita rodar código de terceiro:
+
+| Carrossel | Equivalente oficial | Conteúdo |
+|---|---|---|
+| marketingskills | **marketing** | CRO, copy, SEO, campanhas, relatórios |
+| claude-for-legal | **legal** | contratos, NDA, compliance |
+| claude-seo | **searchfit-seo** | 11 skills de SEO + 6 comandos |
+| frontend-design | **design** | crítica, a11y, design system, handoff |
+
+Todos estão em Browse plugins, com status `available`.
+
+---
+
+## Caminho B — CLI do Claude Code
+
+Rode na **sua máquina**. Cada `marketplace add` registra um repositório
+de terceiros cujo código roda no seu ambiente — confira antes.
+
+### ✅ Repositório confirmado
+
 ```
 /plugin marketplace add coreyhaines31/marketingskills
-/plugin install marketingskills@marketingskills
-```
-
-### ✅ claude-for-legal — 12 plugins jurídicos (oficial Anthropic)
-```
-/plugin marketplace add anthropics/claude-for-legal
-/plugin install commercial-legal@claude-for-legal
-```
-Outros: `privacy-legal`, `corporate-legal`.
-
-### ✅ financial-services — banking, PE, equity (oficial Anthropic)
-```
-/plugin marketplace add anthropics/financial-services
-/plugin install financial-analysis@financial-services
-```
-Instale `financial-analysis` primeiro — ele traz os conectores MCP
-compartilhados. Add-ons: investment banking, equity research, private
-equity, wealth management.
-
-### ✅ superpowers — metodologia de dev, skills combináveis
-```
+/plugin marketplace add anthropics/claude-for-legal      # oficial
+/plugin marketplace add anthropics/financial-services    # oficial
 /plugin marketplace add obra/superpowers-marketplace
-/plugin install superpowers@superpowers-marketplace
-```
-Mantido por Jesse Vincent. Traz `/brainstorm`, `/write-plan`,
-`/execute-plan`.
-
-### ✅ gstack — o setup do Garry Tan, 23 ferramentas
-```
 /plugin marketplace add garrytan/gstack
+/plugin marketplace add JuliusBrussee/caveman
 ```
-Papéis: CEO, Designer, Eng Manager, Release Manager, Doc Engineer, QA.
 
-### ✅ repomix — empacota o repo num arquivo pra LLM
-**Não é plugin do Claude Code** — é uma CLI:
+Depois, `/plugin install <nome>@<marketplace>`.
+
+- **financial-services**: instale `financial-analysis` primeiro — traz os
+  conectores MCP compartilhados.
+- **superpowers**: adiciona `/brainstorm`, `/write-plan`, `/execute-plan`.
+- **caveman**: alterna com `/caveman`. O README mede **65% de redução nos
+  tokens de saída** — entrada e raciocínio não mudam, e a skill custa
+  ~1–1,5k tokens de entrada por turno.
+
+### ⚠️ Sem repositório canônico localizado
+`claude-skills`, `claude-ads`, `humanizer`, `social-media-skills`,
+`ai-second-brain`, `instagram-mcp`. Peça as URLs ao autor.
+
+---
+
+## Itens que não são plugin nem MCP
+
+**repomix** — CLI npm:
 ```
 npm install -g repomix     # ou: brew install repomix
-repomix                    # empacota o diretório atual
+repomix
 npx repomix --remote owner/repo
 ```
 
-### ⚠️ claude-skills — "263+ skills"
-Nome genérico, vários repos distintos disputam ele. Identifique qual o
-autor do carrossel indicava antes de instalar.
+**agent-browser** — o projeto da Vercel é **CLI, não MCP**, e é daí que
+vem a economia de tokens: nenhuma definição de ferramenta ocupa a janela
+de contexto. Um snapshot de página sai por ~200–400 tokens, contra ~13,7k
+do Playwright MCP e ~17k do Chrome DevTools MCP.
 
 ---
 
-## 2. Skills
+## Servidores MCP — situação atual da conta
 
-### ✅ caveman — corta tokens de saída
-```
-/plugin marketplace add JuliusBrussee/caveman
-```
-Alterna com `/caveman` e "normal mode". O README mede **65% de redução
-nos tokens de saída** — entrada e raciocínio não mudam, e a própria skill
-custa ~1–1,5k tokens de entrada por turno.
+| Servidor | Situação |
+|---|---|
+| google-drive | ✅ conectado |
+| zapier | ✅ conectado |
+| slack | ✅ conectado |
+| notion | ⚠️ instalado, **desconectado** — reconecte em Customize → Connectors |
+| perplexity | ver abaixo |
+| instagram-mcp | ⚠️ sem repo canônico |
+| agent-browser | não é MCP (ver acima) |
 
-### ⚠️ Não confirmados
-`claude-ads`, `humanizer`, `social-media-skills`, `claude-seo`,
-`ai-second-brain`, `frontend-design` — não localizei repositório canônico
-para nenhum. Peça as URLs ao autor do carrossel antes de instalar.
-
-> `frontend-design` já existe como skill **nativa** do Claude Code. Antes
-> de instalar uma versão de terceiro, cheque se a nativa já resolve.
-
----
-
-## 3. Servidores MCP
-
-### 🟡 Já conectados na sua conta
-`google-drive`, `zapier`, `slack` — nada a fazer.
-
-### 🟡 notion — instalado, porém desligado
-Está na conta mas aparece como desconectado e desativado neste chat.
-Reative em **claude.ai → Settings → Connectors**, e ligue o conector nas
-configurações da conversa.
-
-### ✅ perplexity — busca web em tempo real (oficial)
+### perplexity (oficial)
 ```
 claude mcp add perplexity \
   --env PERPLEXITY_API_KEY="sua_chave" \
   -- npx -y @perplexity-ai/mcp-server
 ```
-Exige chave da API Perplexity (serviço pago). O formato de plugin não
-carrega segredos — a chave vai por variável de ambiente.
-
-### ✅ agent-browser — automação web econômica em tokens
-O `agent-browser` da Vercel é **CLI, não MCP** — é justamente daí que vem
-a economia de tokens. Um snapshot de página sai por ~200–400 tokens,
-contra ~13,7k do Playwright MCP e ~17k do Chrome DevTools MCP, porque
-nenhuma definição de ferramenta ocupa a janela de contexto.
-
-### ⚠️ instagram-mcp
-Não localizei repositório canônico. Vale notar que a API do Instagram
-restringe bastante publicação e leitura automatizadas — confirme o que o
-servidor realmente entrega antes de depender dele.
+Exige chave da API Perplexity (paga). O formato de plugin não carrega
+segredos — a chave vai por variável de ambiente.
 
 ---
 
 ## Sobre os números do carrossel
 
-As contagens não se sustentam: `frontend-design` "277k" não está sequer
-em formato de estrelas; `gstack` aparece como "104k★" mas a fonte fala em
-~68,2 mil **downloads**; `superpowers` "192k★" está muito acima do repo
-real. São números de marketing, com downloads e estrelas misturados.
+Não se sustentam: `frontend-design` "277k" não está em formato de
+estrelas; `gstack` aparece como "104k★" mas a fonte fala em ~68,2 mil
+**downloads**; `superpowers` "192k★" está muito acima do repo real. São
+downloads e estrelas misturados.
 
-Isso não invalida os projetos — vários são excelentes e quatro são
-oficiais da Anthropic. Só significa que a lista não passou por curadoria
-verificada, o que pesa quando cada instalação executa código de terceiro
-no seu ambiente. Instale o que você for usar de fato.
+Isso não invalida os projetos — vários são bons e alguns são oficiais da
+Anthropic. Significa que a lista não passou por curadoria verificada, o
+que pesa quando cada instalação executa código de terceiro. Instale o que
+for usar de fato, e prefira o equivalente oficial quando existir.
 
 ## Fontes
 
