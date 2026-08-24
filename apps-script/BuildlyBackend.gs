@@ -73,6 +73,49 @@ const COLUNAS_DIARIO = [
 ];
 
 // ============================================================
+// CONTROLE DE ACESSO
+//
+// O web app é publicado como "qualquer pessoa" — é o único modo em que o
+// fetch() de uma página estática funciona sem fluxo de login OAuth. Sem mais
+// nada, isso deixa a planilha inteira aberta a quem descobrir a URL /exec, que
+// está dentro do HTML publicado (repositório público). Além de ler e alterar
+// os dados da obra, um estranho poderia chamar ia/perguntar à vontade, gastando
+// a chave da Anthropic.
+//
+// A trava é um código de acesso combinado, guardado em Propriedades do script
+// (APP_TOKEN) e enviado pelo app em toda chamada. Nunca fica no HTML nem no
+// repositório: o usuário digita uma vez por aparelho e o app guarda localmente.
+//
+// IMPORTANTE — a checagem é opcional de propósito: enquanto APP_TOKEN não
+// existir nas Propriedades do script, tudo passa como antes. Isso permite
+// implantar backend e front-end sem janela de app quebrado; a proteção liga no
+// momento em que a propriedade é criada. Ver apps-script/README.md.
+// ============================================================
+
+function tokenConfigurado() {
+  return PropertiesService.getScriptProperties().getProperty('APP_TOKEN') || '';
+}
+
+// Devolve null quando pode seguir, ou a resposta de erro quando deve barrar.
+function barrarSemToken(e, body) {
+  const esperado = tokenConfigurado();
+  if (!esperado) return null; // proteção ainda não ativada
+
+  const recebido = (e && e.parameter && e.parameter.token) ||
+                   (body && body.token) || '';
+  if (String(recebido) === String(esperado)) return null;
+
+  return ContentService
+    .createTextOutput(JSON.stringify({
+      ok: false,
+      status: 'erro',
+      codigo: 'token_invalido',
+      error: 'Código de acesso ausente ou incorreto.'
+    }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ============================================================
 // ROTEAMENTO
 // ============================================================
 
@@ -81,6 +124,8 @@ function doGet(e) {
   const action = e.parameter.action || '';
   const data   = e.parameter.data   || '';
   const mes    = e.parameter.mes    || '';
+  const barrado = barrarSemToken(e, null);
+  if (barrado) return barrado;
   try {
     if (path === 'pauta'   && action === 'listar')      return listarPautas();
     if (path === 'checkin' && action === 'historico')   return listarCheckIns();
@@ -119,6 +164,11 @@ function doPost(e) {
     // encontrado" e o dado se perdia em silêncio.
     const path   = (e && e.parameter && e.parameter.path)   || body.path   || '';
     const action = (e && e.parameter && e.parameter.action) || body.action || '';
+
+    // Depois do JSON.parse: o token também é aceito dentro do corpo, para o
+    // caso de alguma chamada futura não conseguir usar a query string.
+    const barrado = barrarSemToken(e, body);
+    if (barrado) return barrado;
 
     if (path === 'foto')                                     return salvarFoto(body);
     if (path === 'backup')                                   return salvarBackup(body);

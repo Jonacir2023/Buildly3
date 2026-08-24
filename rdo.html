@@ -2049,6 +2049,74 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
 
 <script>
 // 🔗 Google Apps Script API
+// ── ACESSO AO BACKEND ───────────────────────────────────────────────────
+// A URL /exec está neste arquivo, que é público. O código de acesso NÃO:
+// fica no localStorage do aparelho e nas Propriedades do script (APP_TOKEN).
+// Sem ele, qualquer um que achasse a URL leria e alteraria a planilha da obra
+// e gastaria a chave da Anthropic em ia/perguntar.
+//
+// A injeção acontece interceptando fetch() num ponto só, em vez de alterar
+// cada chamada — assim nenhuma escapa, nem as que forem escritas depois.
+// Ver apps-script/README.md.
+(function () {
+  var CHAVE = 'b3_token';
+  function ler()      { try { return localStorage.getItem(CHAVE) || ''; } catch (e) { return ''; } }
+  function gravar(t)  { try { localStorage.setItem(CHAVE, t); } catch (e) {} }
+
+  // Só a janela principal pergunta. Os apps em iframe leem o mesmo
+  // localStorage (mesma origem); se perguntassem também, abrir a casca
+  // mostraria uma caixa por app.
+  var principal = (function () {
+    try { return window.top === window.self; } catch (e) { return true; }
+  })();
+
+  function pedir(motivo) {
+    if (!principal) return '';
+    var t = window.prompt(motivo || 'Código de acesso do BUILDLy:', '');
+    if (t === null) return '';
+    t = String(t).trim();
+    if (t) gravar(t);
+    return t;
+  }
+
+  window.b3Token = ler;
+  window.b3PedirToken = pedir;
+
+  var _fetch = window.fetch.bind(window);
+  window.fetch = function (url, opts) {
+    if (typeof url !== 'string' || url.indexOf('script.google.com') === -1) {
+      return _fetch(url, opts);
+    }
+    var t = ler();
+    var alvo = t
+      ? url + (url.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(t)
+      : url;
+    return _fetch(alvo, opts).then(function (r) {
+      // Código errado ou trocado: limpa e pergunta de novo, para o app não
+      // ficar preso num estado em que toda chamada falha em silêncio.
+      try {
+        r.clone().json().then(function (j) {
+          if (j && j.codigo === 'token_invalido') {
+            gravar('');
+            pedir('Código de acesso incorreto. Digite novamente:');
+          }
+        }).catch(function () {});
+      } catch (e) {}
+      return r;
+    });
+  };
+
+  // Primeira abertura no aparelho: pede depois de a página aparecer.
+  if (principal && !ler()) {
+    var perguntar = function () { if (!ler()) pedir(); };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', perguntar);
+    } else {
+      setTimeout(perguntar, 0);
+    }
+  }
+})();
+
 const APPS_SCRIPT_URL_DIARIO = 'https://script.google.com/macros/s/AKfycbwrSC_cQQW5IDu7Yrub0wnfMx7aInCX37U3BpiouC0qbFk6qgOwQpJzLXzH1XUX9lGEOA/exec';
 
 // ============================================================
