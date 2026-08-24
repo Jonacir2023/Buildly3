@@ -1,3 +1,59 @@
+# CLAUDE.md — BUILDLy Premium (Buildly3)
+
+Plataforma de gestão de obra da Cesbe S.A. Páginas HTML/JS estáticas, **sem build**, publicadas
+no GitHub Pages, com Google Sheets + Apps Script como backend.
+
+**Idioma: português (PT-BR)** — notas, commits e conversa com o usuário.
+
+---
+
+## Leia o cofre antes de mexer no código
+
+`vault/` é um cofre Obsidian com a memória do projeto: por que as coisas são como são, o que já
+foi decidido, e quais armadilhas já custaram tempo ou dado. **Comece por `vault/Início.md`.**
+
+Essencial antes de qualquer alteração:
+
+| Nota | Para quê |
+|---|---|
+| `vault/Projetos/BUILDLy Premium.md` | Estado atual, histórico, fila de desenvolvimento |
+| `vault/Notas/Regras Operacionais Críticas.md` | O que nunca fazer — cada item vem de um erro real |
+| `vault/Notas/Arquitetura do App.md` | Shell + 9 apps (nativos vs. iframe) |
+| `vault/Notas/Contrato do Backend.md` | Endpoints do Apps Script, entrada e saída |
+| `vault/Notas/Armazenamento Local.md` | Chaves do `localStorage` e suas armadilhas |
+
+## Mantenha o cofre atualizado — sem esperar ser pedido
+
+Toda sessão que fizer trabalho relevante aqui **atualiza as notas afetadas como parte do próprio
+trabalho**, no mesmo commit ou PR. Conta como relevante: PR aberto ou mesclado, decisão tomada,
+mudança no contrato do backend, armadilha nova descoberta, teste do usuário que confirma ou
+desmente algo já escrito.
+
+O guia de manutenção — o que atualizar em cada caso, como escrever, o que não guardar — está em
+`vault/Notas/Como manter este cofre.md`. Siga-o.
+
+Sem isso o cofre envelhece e passa a atrapalhar em vez de ajudar: uma nota errada é pior que
+nota nenhuma.
+
+---
+
+## Independência do repositório JC
+
+`Jonacir2023/JC` é o vault do **diário de obras**, exclusivamente. Este projeto não tem vínculo
+com ele — sem submodules, imports, deploy compartilhado ou documentação cruzada. Documentação do
+Buildly3 mora em `vault/`, dentro deste repositório.
+
+---
+
+## Como as mudanças chegam ao usuário
+
+O usuário **não faz push**. A entrega é um `.zip` com scripts Python numerados (`NN_*.py` na
+raiz) que editam os HTML por trechos exatos, mais um `LEIA-ME.txt` com um comando de uma linha
+para o Terminal. Os scripts precisam ser **idempotentes** — rodar duas vezes não pode duplicar
+a alteração.
+
+---
+
 ## graphify
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
