@@ -13,8 +13,7 @@ preferências de estilo.
 ## Dados do usuário
 
 1. **Nunca recomendar limpar dados do site / Safari como solução de cache.** Isso apaga o
-   `localStorage` inteiro — cadastro e histórico. Já foi violado uma vez por engano no app
-   antigo e causou a pior crise daquela sessão. Se o app não atualizar visualmente: fechar e
+   `localStorage` inteiro — cadastro e histórico. Se o app não atualizar visualmente: fechar e
    reabrir, e aguardar a propagação do GitHub Pages (1–2 min).
 
 2. **Nunca pedir para o usuário redigitar cadastro por causa de bug.** Se dados sumirem ou
@@ -25,10 +24,10 @@ preferências de estilo.
    contratual. Faltou dado, fica em branco ou marcado como pendente — nunca estimado, nunca
    inferido.
 
-4. **Nunca deixar o app cair silenciosamente em estado vazio / obra sem nome.** No app antigo,
-   `backupNuvem()` usava `state.obra.nome || 'Obra'` como nome de pasta: toda vez que o nome
-   vinha vazio, criava uma pasta nova no Drive — resultado, 11+ pastas duplicadas "Suzano -
-   ETA". Nome vazio é sinal de perda de estado: deve alertar, não seguir em frente.
+4. **Nunca deixar o app cair silenciosamente em estado vazio / obra sem nome.** `backupNuvem()`
+   usa `state.obra.nome || 'Obra'` como nome de pasta no Drive: se o nome vier vazio, cria uma
+   pasta nova a cada vez, e o backup se espalha em pastas duplicadas sem ninguém perceber. Nome
+   vazio é sinal de perda de estado — deve alertar, não seguir em frente.
 
 5. **Nunca limpar uma aba da planilha que já tem dados.** Um `clearContents()` incondicional em
    `salvarDiario()` já apagou histórico inteiro de RDO em produção. Cabeçalho só se cria quando

@@ -64,10 +64,10 @@ Regra: onde o registro pode carregar imagem embutida (Custos, RDO), envolva a gr
 
 ## Armadilha: PWA e navegação privada no iOS
 
-Herdada do app antigo, e a causa mais provável da perda recorrente de dados que já aconteceu
-lá: reinstalar o ícone PWA na tela de início do iPhone pode criar um container de
-`localStorage` separado e zerado. O Safari em modo privado também isola/descarta o
-armazenamento entre sessões.
+Reinstalar o ícone PWA na tela de início do iPhone pode criar um container de `localStorage`
+separado e zerado — o app abre como se nunca tivesse sido usado. O Safari em modo privado
+também isola e descarta o armazenamento entre sessões. É a explicação mais provável para um
+"sumiço" de dados que não tem causa no código.
 
 Por isso: **a planilha é a fonte de verdade, o local é cache.** Se o app abrir vazio, restaure
 da nuvem — nunca peça para o usuário redigitar cadastro.

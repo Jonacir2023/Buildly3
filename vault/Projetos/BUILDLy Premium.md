@@ -137,11 +137,12 @@ Já estão no ar (mesclados em 24/08), mas nenhum foi visto num aparelho de verd
 
 ---
 
-## Independência do repositório JC
+## Projeto fechado em si
 
-`Jonacir2023/JC` é o vault do **diário de obras**, exclusivamente. Este projeto **não** deve ter
-vínculo técnico nem documental com ele: sem submodules, imports, deploy compartilhado ou notas
-cruzadas. Documentação do Buildly3 mora aqui, neste cofre, dentro do próprio repositório.
+O BUILDLy é autocontido: código, backend, planilha e documentação vivem neste repositório e mais
+nada. **Toda** documentação do projeto vai para `vault/`, aqui — nunca para outro repositório,
+outro cofre ou outra base de notas. Sem submodules, sem imports externos, sem deploy
+compartilhado, sem notas cruzadas com outros projetos.
 
 ---
 
