@@ -17,6 +17,23 @@ ver [[Decisões/2026-08-21 Backend recuperado da Lixeira]]).
 
 ---
 
+## Código de acesso
+
+Toda chamada precisa levar `token=<código>` (query string ou corpo JSON). O backend compara com
+a propriedade `APP_TOKEN` do script; sem bater, devolve `{ok:false, codigo:'token_invalido'}` e
+não executa nada.
+
+**A checagem é opcional de propósito:** enquanto `APP_TOKEN` não existir nas Propriedades do
+script, tudo passa como antes. Isso existe para permitir implantar sem janela de app quebrado —
+não é descuido. Ver [[Decisões/2026-08-21 Código de acesso ao backend]].
+
+No front-end o token é injetado por um shim sobre `fetch()`, então não é preciso lembrar dele ao
+escrever chamada nova nos arquivos que já o têm (`pauta`, `Check-in`, `rdo`,
+`buildly-completo`). **`custos.html` ainda não tem o shim** — ao ligar `custos/salvar`, leve-o
+junto.
+
+---
+
 ## Roteamento
 
 `path` e `action` podem vir na query string **ou** dentro do corpo JSON do POST — o

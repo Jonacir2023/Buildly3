@@ -12,6 +12,11 @@ Conhecimento técnico durável sobre o sistema — o que não muda a cada sessã
 - [[Notas/Contrato do Backend]] — endpoints do Apps Script, entrada e saída, upsert, robô de IA
 - [[Notas/Armazenamento Local]] — chaves do `localStorage` e as armadilhas de cada uma
 
+## Avaliação
+
+- [[Notas/Maturidade de Produção]] — onde o app está contra a checklist de produção de IA, e o
+  que vale ou não perseguir
+
 ## Processo
 
 - [[Notas/Regras Operacionais Críticas]] — o que nunca fazer, e por quê

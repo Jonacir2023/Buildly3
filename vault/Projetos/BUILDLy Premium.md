@@ -57,7 +57,12 @@ Sessão de retomada depois da limpeza da obra encerrada.
 - **Robô de IA passou a aparecer em todas as abas**, como botão flutuante. Ver
   [[Decisões/2026-08-21 Robô de IA visível em todas as abas]]. → **PR #3**
 - **Este cofre Obsidian foi criado**, para que a próxima sessão não precise redescobrir nada
-  disso. Ver [[Notas/Como manter este cofre]].
+  disso. Ver [[Notas/Como manter este cofre]]. → **PR #4**
+- **Backend passou a exigir código de acesso.** Avaliando o app contra a checklist de produção
+  de IA ([[Notas/Maturidade de Produção]]), apareceu uma lacuna real: a URL `/exec` está no HTML
+  publicado, em repositório público, e o web app aceitava qualquer um — dava para ler e alterar
+  a planilha da obra e gastar a chave da Anthropic. Ver
+  [[Decisões/2026-08-21 Código de acesso ao backend]]. → **PR #5**
 
 Nada foi testado contra o Google nem em celular real — o ambiente do Claude não alcança
 `script.google.com`, e os testes de interface foram em navegador headless.
@@ -74,11 +79,22 @@ Nada foi testado contra o Google nem em celular real — o ambiente do Claude n�
       foto comprimida continua legível.
 - [ ] **PR #3** — robô flutuante no celular, incluindo Reunião, Resumo do Tempo, Medição,
       Documentos e Manutenção (não testadas individualmente), e em desktop ≥900px.
+- [ ] **PR #5** — código de acesso: implantar na ordem do `apps-script/README.md` (a checagem só
+      liga quando `APP_TOKEN` é criado, então não há janela de app quebrado) e confirmar no
+      iPhone. **Sai do PR #1 — mesclar o #1 antes.**
 
 ### Em aberto
 
+- [ ] **Rate limit no `ia/perguntar`.** O código de acesso protege o perímetro, mas quem o tiver
+      chama à vontade — se vazar, a chave da Anthropic volta a ficar exposta. Teto diário por
+      aparelho. Ver [[Notas/Maturidade de Produção]].
+- [ ] **Memória multi-turno no robô.** Hoje cada pergunta é isolada; não dá para dizer "e no mês
+      passado?" em seguida. Barato e o usuário sente.
+- [ ] **Tools no robô.** Hoje ele responde mas não age — com tools, criaria pauta ou lançaria
+      apontamento a partir da conversa.
 - [ ] **Ligar Custos à planilha.** `custos/salvar` existe no backend; nenhum front-end chama.
-      Hoje as notas fiscais vivem só no aparelho.
+      Hoje as notas fiscais vivem só no aparelho. **Levar o shim do código de acesso junto** —
+      `custos.html` ainda não o tem.
 - [ ] **OCR de nota fiscal** — depende de escolher API de visão. O robô já usa Anthropic, então
       pode ser o caminho natural.
 - [ ] **Implementar `foto&action=base64`** no backend — o `rdo.html` já chama esse endpoint como

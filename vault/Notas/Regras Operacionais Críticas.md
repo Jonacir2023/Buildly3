@@ -70,6 +70,16 @@ preferências de estilo.
 13. **Gravação que pode conter imagem precisa de `try/catch`.** Cota de `localStorage` estoura
     sem aviso e o registro se perde em silêncio. Ver [[Notas/Armazenamento Local]].
 
+14. **Página estática em repositório público não guarda segredo nenhum.** Qualquer valor
+    embutido no HTML é público por definição — inclusive a URL `/exec`. Todo segredo vem de
+    fora: das Propriedades do script (servidor) ou digitado pelo usuário e guardado no aparelho.
+    Ver [[Decisões/2026-08-21 Código de acesso ao backend]].
+
+15. **Toda chamada nova ao backend precisa levar o código de acesso.** O shim sobre `fetch()`
+    cobre isso sozinho nos arquivos onde já está (`pauta`, `Check-in`, `rdo`,
+    `buildly-completo`) — mas `custos.html` ainda não o tem, porque hoje não chama o backend.
+    Ao ligar `custos/salvar`, leve o shim junto.
+
 ---
 
 ## Relacionado
