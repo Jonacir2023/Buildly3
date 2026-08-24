@@ -35,6 +35,51 @@ pra colar", não como "já confirmado funcionando".
    script → adicione `ANTHROPIC_API_KEY` com uma chave válida da Anthropic.
 10. Teste: crie um assunto na Pauta e clique em atualizar. Se salvar sem
     erro e aparecer na aba "Pauta" da planilha, está funcionando.
+11. **Só depois que o teste passar**, ligue o código de acesso — passo a passo
+    na seção abaixo.
+
+## Código de acesso (APP_TOKEN)
+
+O web app é publicado como "qualquer pessoa" porque é o único modo em que o
+`fetch()` de uma página estática funciona sem fluxo de login. Sem mais nada,
+quem descobrisse a URL `/exec` — que está dentro do HTML publicado, em
+repositório público — poderia ler e alterar a planilha da obra e gastar a chave
+da Anthropic chamando `ia/perguntar`.
+
+A trava é um código combinado, guardado em Propriedades do script e enviado
+pelo app em toda chamada. **Nunca fica no HTML nem no repositório:** o usuário
+digita uma vez por aparelho e o navegador guarda localmente.
+
+### Ligando sem derrubar o app
+
+A checagem é opcional de propósito — enquanto `APP_TOKEN` não existir, tudo
+passa como antes. Por isso a ordem importa:
+
+1. Implante o backend e publique os HTMLs (o app continua funcionando
+   normalmente, sem pedir código nenhum).
+2. Abra o app em cada aparelho que vai usar. Ele pede o código uma vez —
+   digite o que você escolheu. Ainda não há validação, mas já fica guardado.
+3. **Por último**, em Configurações do projeto → Propriedades do script,
+   adicione `APP_TOKEN` com esse mesmo código. A proteção passa a valer na
+   hora, e os aparelhos do passo 2 continuam funcionando sem interrupção.
+
+Se inverter a ordem (criar `APP_TOKEN` antes de os aparelhos terem o código),
+nada se perde — o app pede o código na primeira falha e volta a funcionar.
+
+### Trocando o código depois
+
+Mude `APP_TOKEN` nas Propriedades do script. Cada aparelho vai receber
+`token_invalido` na chamada seguinte, pedir o código novo e seguir. É também
+como se revoga o acesso de um aparelho perdido.
+
+### O que ainda não está coberto
+
+- `custos.html` não chama o backend hoje, então não recebeu a injeção do
+  código. Quando `custos/salvar` for ligado, ela precisa ir junto.
+- Não há limite de chamadas por aparelho. Quem tem o código pode chamar
+  `ia/perguntar` à vontade — dentro da equipe é aceitável, mas se o código
+  vazar, a chave da Anthropic volta a ficar exposta. Um teto diário é o
+  próximo passo natural.
 
 ## O que está implementado
 
