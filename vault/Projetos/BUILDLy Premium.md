@@ -44,6 +44,24 @@ Manutenção. Ver [[Notas/Arquitetura do App]].
 
 ## Histórico
 
+### 24/08/2026 — Os 5 PRs mesclados; o app mudou, o backend não
+
+Todos os PRs abertos em 21/08 entraram em `main` (`6f159c6`), sem conflito. O `main` mesclado
+foi validado por inteiro — não só as branches separadas: sintaxe dos 5 HTMLs, os 11 casos do
+backend, os 8 do código de acesso e um teste visual confirmando que robô flutuante, foto da NF
+e código de acesso convivem no mesmo `buildly-completo.html`, que era o arquivo tocado por dois
+PRs diferentes.
+
+Duas consequências que valem lembrar em qualquer merge futuro:
+
+- **Mesclar publica o app, mas não implanta o backend.** `main` é o que o GitHub Pages serve, então
+  as mudanças de HTML ficaram no ar na hora. O `.gs` não: git não implanta Apps Script, e o que
+  roda continua sendo o que está colado no editor do Google.
+- **A caixa do código de acesso apareceu para a equipe** antes de existir código combinado.
+  Inofensiva por desenho (sem `APP_TOKEN`, cancelar ou digitar qualquer coisa segue funcionando —
+  caminho testado), mas é uma mudança visível que a equipe vê sem aviso. Numa próxima, combinar o
+  código antes de mesclar.
+
 ### 21/08/2026 — Retomada: backend recuperado, 3 PRs abertos
 
 Sessão de retomada depois da limpeza da obra encerrada.
@@ -71,17 +89,26 @@ Nada foi testado contra o Google nem em celular real — o ambiente do Claude n�
 
 ## Fila de desenvolvimento
 
-### Aguardando teste do usuário
+### Bloqueando tudo: implantar o Apps Script
 
-- [ ] **PR #1** — implantar o Apps Script restaurado e testar: criar assunto na Pauta → atualizar.
-      Passo a passo em `apps-script/README.md`. Inclui configurar `ANTHROPIC_API_KEY`.
-- [ ] **PR #2** — foto da NF no iPhone real: confirmar que abre a câmera, não a galeria; e que a
-      foto comprimida continua legível.
-- [ ] **PR #3** — robô flutuante no celular, incluindo Reunião, Resumo do Tempo, Medição,
-      Documentos e Manutenção (não testadas individualmente), e em desktop ≥900px.
-- [ ] **PR #5** — código de acesso: implantar na ordem do `apps-script/README.md` (a checagem só
-      liga quando `APP_TOKEN` é criado, então não há janela de app quebrado) e confirmar no
-      iPhone. **Sai do PR #1 — mesclar o #1 antes.**
+- [ ] **Implantar `apps-script/BuildlyBackend.gs`** no editor do Google e trocar a URL `/exec`
+      nos HTMLs. Passo a passo em `apps-script/README.md`. Enquanto isso não acontecer, nada do
+      backend novo está no ar — nem o `custos/salvar`, nem o código de acesso, nem o robô com a
+      `ANTHROPIC_API_KEY`. **É a pendência que destrava as outras.**
+- [ ] **Ativar o código de acesso:** criar `APP_TOKEN` nas Propriedades do script. Até lá o app
+      pede o código mas aceita qualquer coisa — o item 03 da
+      [[Notas/Maturidade de Produção]] só conta como resolvido depois disso.
+
+### Aguardando confirmação em aparelho real
+
+Já estão no ar (mesclados em 24/08), mas nenhum foi visto num aparelho de verdade:
+
+- [ ] **Foto da NF** — confirmar no iPhone que abre a câmera, não a galeria, e que a foto
+      comprimida continua legível para reler a nota.
+- [ ] **Robô flutuante** — no celular, incluindo Reunião, Resumo do Tempo, Medição, Documentos e
+      Manutenção (não testadas individualmente), e em desktop ≥900px.
+- [ ] **Caixa do código de acesso** — confirmar que aparece uma vez e que o app segue normal
+      depois.
 
 ### Em aberto
 

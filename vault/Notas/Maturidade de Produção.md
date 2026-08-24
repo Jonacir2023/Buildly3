@@ -21,7 +21,7 @@ aplicações de IA (14 itens). Cada item foi conferido no código, não estimado
 |---|---|---|---|
 | 01 | Frontend | ✅ | 9 apps no GitHub Pages |
 | 02 | API Gateway | ⚠️ | Roteamento por `path`/`action`; **sem rate limit** |
-| 03 | Authentication | ✅* | Código de acesso — ver abaixo |
+| 03 | Authentication | 🟡* | Código de acesso escrito e mesclado, **ainda não ativo** — ver abaixo |
 | 04 | Prompt Mgmt | ⚠️ | Hardcoded no `.gs`, mas versionado em git |
 | 05 | Model Gateway | ⚠️ | Trocar modelo = 1 constante; sem failover |
 | 06 | LLM | ✅ | Claude Haiku, funcionando |
@@ -34,8 +34,10 @@ aplicações de IA (14 itens). Cada item foi conferido no código, não estimado
 | 13 | Evaluation | ❌ | Sem como saber se mexer no prompt melhorou |
 | 14 | Deploy & Scale | ⚠️ | Deploy manual, sem CI/CD |
 
-`*` O item 03 estava ❌ quando este levantamento foi feito. Foi corrigido no mesmo dia — ver
-[[Decisões/2026-08-21 Código de acesso ao backend]].
+`*` O item 03 estava ❌ quando este levantamento foi feito (21/08). O código foi escrito no mesmo
+dia e mesclado em 24/08 — mas **a proteção só passa a valer quando `APP_TOKEN` for criado nas
+Propriedades do script**, o que ainda não aconteceu. Hoje o app pede o código e aceita qualquer
+coisa. Ver [[Decisões/2026-08-21 Código de acesso ao backend]].
 
 ---
 
