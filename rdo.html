@@ -2311,6 +2311,9 @@ function sincronizarObraCompartilhada() {
   }
 }
 let history = loadHistory();
+// Converte chaves antigas (só a data) para data#apontador. Não faz nada se já
+// estiverem no formato novo.
+migrarHistoricoParaMultiRdo();
 let currentDay = null;
 let editingDate = null;
 let editingCat = { type: null, id: null };
@@ -2416,6 +2419,107 @@ function loadHistory() {
 function saveHistory() {
   const key = getHistoryKey();
   localStorage.setItem(key, JSON.stringify(history));
+}
+
+// ============================================================
+// CHAVE DO DIÁRIO — mais de um RDO por dia
+//
+// Regra da obra: "se na mesma data tiver um RDO com o mesmo apontador, apaga o
+// mais antigo; se tiver dois apontadores diferentes, permanecem os dois."
+//
+// Por isso a chave do histórico deixou de ser só a data e virou
+// `data#apontador-normalizado`:
+//
+//   2026-08-24#renan-de-souza
+//   2026-08-24#jekyll-de-castro-vinente   ← convivem no mesmo dia
+//
+// Quem soma quantidade percorre as CHAVES (dois apontadores no mesmo dia
+// lançaram trabalhos diferentes, e os dois contam). Quem conta ou navega por
+// dia usa datasDoHistorico(), que devolve datas distintas.
+// ============================================================
+
+function slugApontador(apontador) {
+  return String(apontador || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '') || 'sem-apontador';
+}
+
+function chaveDiario(data, apontador) {
+  return `${data}#${slugApontador(apontador)}`;
+}
+
+function dataDaChave(chave) {
+  return String(chave || '').split('#')[0];
+}
+
+function apontadorDaChave(chave) {
+  const p = String(chave || '').split('#');
+  return p.length > 1 ? p.slice(1).join('#') : '';
+}
+
+// Todas as chaves de RDO de uma data (um por apontador).
+function chavesDaData(data) {
+  return Object.keys(history).filter(k => dataDaChave(k) === data);
+}
+
+// Os RDOs de uma data, já resolvidos.
+function rdosDaData(data) {
+  return chavesDaData(data).map(k => history[k]);
+}
+
+// Datas distintas do histórico — para calendário, contagem e navegação.
+function datasDoHistorico() {
+  return [...new Set(Object.keys(history).map(dataDaChave))].sort();
+}
+
+// Apontador que este aparelho vem usando. Serve para, num dia com dois RDOs,
+// abrir o do próprio usuário em vez do de outra pessoa.
+const APONTADOR_APARELHO_KEY = 'diario_obras_apontador_aparelho';
+
+function apontadorDoAparelho() {
+  try { return localStorage.getItem(APONTADOR_APARELHO_KEY) || ''; } catch (e) { return ''; }
+}
+
+function lembrarApontadorDoAparelho(apontador) {
+  try { if (apontador) localStorage.setItem(APONTADOR_APARELHO_KEY, apontador); } catch (e) {}
+}
+
+// Qual RDO da data abrir para edição: o deste aparelho, se existir; senão o
+// primeiro da data. Havendo dois apontadores no mesmo dia, cada um continua
+// editando o seu — os dois nunca são fundidos num só.
+function rdoParaEditar(data) {
+  const chaves = chavesDaData(data);
+  if (!chaves.length) return null;
+  const minha = chaveDiario(data, apontadorDoAparelho());
+  if (chaves.includes(minha)) return history[minha];
+  return history[chaves.sort()[0]];
+}
+
+// Converte o histórico antigo (chave = só a data) para o formato novo,
+// reindexando pelo apontador gravado dentro do próprio RDO. Roda uma vez;
+// chave que já tem '#' é deixada como está.
+function migrarHistoricoParaMultiRdo() {
+  let migradas = 0;
+  Object.keys(history).forEach(k => {
+    if (k.includes('#')) return;
+    const dia = history[k] || {};
+    const nova = chaveDiario(k, dia.apontador);
+    // Se já existe um RDO nessa chave nova, fica o mais recente (mesma regra
+    // de conflito usada na sincronização).
+    const atual = history[nova];
+    if (!atual || String(dia.atualizadoEm || '') >= String(atual.atualizadoEm || '')) {
+      history[nova] = dia;
+    }
+    delete history[k];
+    migradas++;
+  });
+  if (migradas) {
+    saveHistory();
+    console.log(`✅ Histórico migrado para multi-RDO: ${migradas} chave(s)`);
+  }
+  return migradas;
 }
 
 // ============================================================
@@ -2575,8 +2679,10 @@ function initCurrentDay(data) {
     salvarDiarioDia(false);
   }
   data = data || todayISO();
-  if (history[data]) {
-    currentDay = JSON.parse(JSON.stringify(history[data]));
+  const doDia = rdoParaEditar(data);
+  if (doDia) {
+    currentDay = JSON.parse(JSON.stringify(doDia));
+    currentDay.data = data;
   } else {
     currentDay = EMPTY_DAY();
     currentDay.data = data;
@@ -2987,8 +3093,11 @@ async function tentarTrazerDiaAnteriorDaNuvem(atual) {
     history[origem] = { ...EMPTY_DAY(), ...dados.history[origem] };
     saveHistory();
     if (dados.chavesDia) {
+      // As chaves de dia são indexadas pela DATA, não pela chave do RDO —
+      // `origem` pode vir como "data#apontador".
+      const diaOrigem = dataDaChave(origem);
       ['efetivoDia_', 'equipDia_', 'vlDia_', 'ativDia_'].forEach(p => {
-        const k = p + origem;
+        const k = p + diaOrigem;
         if (dados.chavesDia[k] !== undefined) localStorage.setItem(k, dados.chavesDia[k]);
       });
     }
@@ -3002,11 +3111,11 @@ async function tentarTrazerDiaAnteriorDaNuvem(atual) {
 async function copiarUltimoDiario() {
   const atual = currentDay.data;
   if (!atual) { toast('❌ Defina a data do diário primeiro'); return; }
-  let datas = Object.keys(history).filter(d => d < atual).sort();
+  let datas = datasDoHistorico().filter(d => d < atual).sort();
   if (!datas.length) {
     toast('☁️ Nenhum diário local anterior — buscando na nuvem...');
     const trazido = await tentarTrazerDiaAnteriorDaNuvem(atual);
-    if (trazido) datas = Object.keys(history).filter(d => d < atual).sort();
+    if (trazido) datas = datasDoHistorico().filter(d => d < atual).sort();
   }
   if (!datas.length) { toast('❌ Não há diário anterior para copiar'); return; }
   const origem = datas[datas.length - 1];
@@ -3024,8 +3133,10 @@ async function copiarUltimoDiario() {
     S.set('ativDia_' + atual, copia);
   }
 
-  // Copiar campos repetitivos do diário de origem
-  const dOrig = history[origem] || {};
+  // Copiar campos repetitivos do diário de origem. `origem` é uma DATA
+  // (datasDoHistorico), então resolve-se o RDO daquele dia — o deste aparelho,
+  // se houver mais de um.
+  const dOrig = rdoParaEditar(origem) || {};
   currentDay.efetivo        = { ...(dOrig.efetivo || {}) };
   currentDay.dssHorario     = dOrig.dssHorario || currentDay.dssHorario;
   currentDay.dssMinistrou   = dOrig.dssMinistrou || currentDay.dssMinistrou;
@@ -3061,7 +3172,7 @@ function escHtml(s) {
 }
 
 function calcResumoPeriodoPDF(isoInicio, isoFim) {
-  const dias = Object.keys(history).filter(d => d >= isoInicio && d <= isoFim).sort();
+  const dias = Object.keys(history).filter(k => dataDaChave(k) >= isoInicio && dataDaChave(k) <= isoFim).sort();
   const acum = {}; // atId -> total
   let somaEfetivo = 0, diasComEfetivo = 0;
   dias.forEach(data => {
@@ -3857,8 +3968,9 @@ window.addEventListener('DOMContentLoaded', () => {
   if (!dataRdo) return;
   setTimeout(() => {
     try {
-      if (history[dataRdo]) {
-        currentDay = JSON.parse(JSON.stringify(history[dataRdo]));
+      const doDia = rdoParaEditar(dataRdo);
+      if (doDia) {
+        currentDay = JSON.parse(JSON.stringify(doDia));
         currentDay.data = dataRdo;
       }
       gerarPdfRDO();
@@ -4151,10 +4263,10 @@ function salvarDiarioDia(notificar) {
     (currentDay.atividadesParalisadas || []).length > 0 ||
     (currentDay.fotos || []).length > 0;
   if (temDado) {
-    history[currentDay.data] = JSON.parse(JSON.stringify(currentDay));
+    history[chaveDiario(currentDay.data, currentDay.apontador)] = JSON.parse(JSON.stringify(currentDay));
     saveHistory();
-  } else if (history[currentDay.data]) {
-    delete history[currentDay.data];
+  } else if (history[chaveDiario(currentDay.data, currentDay.apontador)]) {
+    delete history[chaveDiario(currentDay.data, currentDay.apontador)];
     saveHistory();
   }
   if (notificar) {
@@ -4805,8 +4917,21 @@ function renderApontadorDia() {
   }
 }
 
-function selecionarApontadorDireto(val) {
+// Trocar o apontador muda a CHAVE do RDO (data#apontador). Sem mover a
+// entrada, o dia gravado sob o apontador anterior ficaria órfão no histórico e
+// o mesmo trabalho apareceria duas vezes, em nome de duas pessoas.
+function _trocarApontadorDoDia(val) {
+  const anterior = currentDay.apontador || '';
+  if (anterior && anterior !== val && currentDay.data) {
+    const chaveAntiga = chaveDiario(currentDay.data, anterior);
+    if (history[chaveAntiga]) { delete history[chaveAntiga]; saveHistory(); }
+  }
   currentDay.apontador = val;
+  lembrarApontadorDoAparelho(val);
+}
+
+function selecionarApontadorDireto(val) {
+  _trocarApontadorDoDia(val);
   salvarDiarioDia(false);
 }
 
@@ -4817,7 +4942,7 @@ function selecionarApontador() {
 
 function confirmarApontador() {
   const val = (document.getElementById('modalApontadorInput').value || '').trim();
-  currentDay.apontador = val;
+  _trocarApontadorDoDia(val);
   renderApontadorDia();
   salvarDiarioDia();
   fecharModal('modalApontador');
@@ -5079,7 +5204,7 @@ function renderConfig() {
   renderConfigAtiv();
   renderConfigEventos('seguranca');
   renderConfigEventos('meio_ambiente');
-  document.getElementById('histCount').textContent = Object.keys(history).length;
+  document.getElementById('histCount').textContent = datasDoHistorico().length;
   atualizarInfoAutoBackup();
 }
 
@@ -5965,7 +6090,7 @@ function confirmar(msg, onSim, titulo) {
 // RELATÓRIO
 // ============================================================
 function numeroRDO(dataISO) {
-  const datas = Object.keys(history).sort();
+  const datas = datasDoHistorico();
   const idx = datas.indexOf(dataISO);
   return String((idx >= 0 ? idx : datas.length) + 1).padStart(3, '0');
 }
@@ -6279,7 +6404,7 @@ function renderResumo() {
   }
 
   // Coletar dias com histórico no período
-  const diasPeriodo = Object.keys(history).filter(d => d >= isoInicio && d <= isoFim).sort();
+  const diasPeriodo = Object.keys(history).filter(k => dataDaChave(k) >= isoInicio && dataDaChave(k) <= isoFim).sort();
 
   // Stats
   document.getElementById('resumoStatDias').textContent = diasPeriodo.length;
@@ -6454,7 +6579,7 @@ function buildResumoTexto() {
     ? `${meses[inicio.getMonth()]} de ${inicio.getFullYear()}`
     : `Ano de ${inicio.getFullYear()}`;
   const divisor = '⸻—————————————————';
-  const diasPeriodo = Object.keys(history).filter(d => d >= isoInicio && d <= isoFim).sort();
+  const diasPeriodo = Object.keys(history).filter(k => dataDaChave(k) >= isoInicio && dataDaChave(k) <= isoFim).sort();
 
   let txt = '';
   if (state.obra.empresa) txt += `*${state.obra.empresa.toUpperCase()}*
@@ -6568,7 +6693,7 @@ function gerarAcumulado(periodo) {
   // Acumular quantidades por atividade
   const acum = {}; // atId -> total
   Object.keys(history).forEach(data => {
-    if (data < isoInicio || data > isoFim) return;
+    if (dataDaChave(data) < isoInicio || dataDaChave(data) > isoFim) return;
     const day = history[data];
     const ids = new Set([
       ...Object.keys(day.atividadesQtd || {}),
@@ -6666,10 +6791,13 @@ async function abrirWhatsApp(txt) {
 function limparDiarioAtual() {
   confirmar('Limpar todos os dados do diário de hoje?', () => {
     const data = currentDay.data;
+    // Apaga só o RDO deste apontador. Num dia com dois, limpar o próprio não
+    // pode levar junto o do colega.
+    const chave = chaveDiario(data, currentDay.apontador);
     currentDay = EMPTY_DAY();
     currentDay.data = data;
     currentDay.encerramento = jornadaPadraoPorDia(data);
-    if (history[data]) { delete history[data]; saveHistory(); }
+    if (history[chave]) { delete history[chave]; saveHistory(); }
     preencherCampos();
     atualizarHeaderEdicao();
     renderDiario();
@@ -6711,9 +6839,9 @@ function renderCalendario() {
     const div = document.createElement('div');
     div.className = 'cal-day';
     if (dow === 0 || dow === 6) div.classList.add('weekend');
-    if (history[iso]) div.classList.add('has-data');
+    if (chavesDaData(iso).length) div.classList.add('has-data');
     if (iso === hoje) div.classList.add('today');
-    div.innerHTML = `${d}${history[iso] ? '<div class="cal-day-dot"></div>' : ''}`;
+    div.innerHTML = `${d}${chavesDaData(iso).length ? '<div class="cal-day-dot"></div>' : ''}`;
     div.onclick = () => abrirResumoData(iso);
     grid.appendChild(div);
   }
@@ -6727,8 +6855,12 @@ function navegarMes(delta) {
 function abrirResumoData(iso) {
   activeResumoData = iso;
   document.getElementById('modalResumoTitle').textContent = `📅 ${DIAS_SEMANA_CURTO[parseISO(iso).getDay()]} · ${formatDateBR(iso)}`;
-  if (history[iso]) {
-    document.getElementById('modalResumoTexto').textContent = buildRelatorio(history[iso]);
+  const rdos = rdosDaData(iso);
+  if (rdos.length) {
+    // Dois apontadores no mesmo dia geram dois relatórios; mostrar os dois,
+    // separados, em vez de escolher um e esconder o outro.
+    document.getElementById('modalResumoTexto').textContent =
+      rdos.map(buildRelatorio).join('\n\n' + '─'.repeat(28) + '\n\n');
   } else {
     document.getElementById('modalResumoTexto').textContent = 
       'Nenhum diário registrado.\n\nToque em "Editar este Diário" para criar.';
@@ -6747,18 +6879,31 @@ function editarDiarioPassado() {
   window.scrollTo({top:0, behavior:'smooth'});
   toast('Editando ' + formatDateBR(activeResumoData));
 }
+// Texto do dia — junta os RDOs da data quando há mais de um apontador.
+function _textoResumoDaData(iso) {
+  const rdos = rdosDaData(iso);
+  if (!rdos.length) return '';
+  return rdos.map(buildRelatorio).join('\n\n' + '─'.repeat(28) + '\n\n');
+}
 function copiarResumoModal() {
-  if (!activeResumoData || !history[activeResumoData]) { toast('Nada para copiar'); return; }
-  copiarTexto(buildRelatorio(history[activeResumoData]));
+  const txt = activeResumoData ? _textoResumoDaData(activeResumoData) : '';
+  if (!txt) { toast('Nada para copiar'); return; }
+  copiarTexto(txt);
 }
 function enviarResumoWhatsApp() {
-  if (!activeResumoData || !history[activeResumoData]) { toast('Nada para enviar'); return; }
-  abrirWhatsApp(buildRelatorio(history[activeResumoData]));
+  const txt = activeResumoData ? _textoResumoDaData(activeResumoData) : '';
+  if (!txt) { toast('Nada para enviar'); return; }
+  abrirWhatsApp(txt);
 }
 function excluirDiarioPassado() {
-  if (!activeResumoData || !history[activeResumoData]) return;
-  confirmar(`Excluir o diário de ${formatDateBR(activeResumoData)}?`, () => {
-    delete history[activeResumoData];
+  if (!activeResumoData) return;
+  const chaves = chavesDaData(activeResumoData);
+  if (!chaves.length) return;
+  // O botão promete excluir "o diário do dia" — com dois apontadores, são dois.
+  // O aviso diz quantos, para ninguém apagar o do colega sem saber.
+  const quantos = chaves.length > 1 ? ` (${chaves.length} RDOs, de apontadores diferentes)` : '';
+  confirmar(`Excluir o diário de ${formatDateBR(activeResumoData)}${quantos}?`, () => {
+    chaves.forEach(k => delete history[k]);
     saveHistory();
     fecharModal('modalResumo');
     renderCalendario();
@@ -6786,7 +6931,7 @@ function backupAutomatico() {
     localStorage.setItem(AUTOBACKUP_KEY, payload);
     localStorage.setItem(AUTOBACKUP_META_KEY, JSON.stringify({
       data: new Date().toISOString(),
-      diarios: Object.keys(history).length
+      diarios: datasDoHistorico().length
     }));
     atualizarInfoAutoBackup();
     backupNuvem(false); // espelho diário no Google Drive (1x/dia, silencioso)
@@ -6844,6 +6989,8 @@ async function restaurarNuvem(silencioso) {
     const dados = JSON.parse(json.conteudo);
     if (dados.state) state = mergeDefaults(dados.state);
     if (dados.history) history = dados.history;
+    // Backup antigo pode vir com chaves só de data — migra ao restaurar.
+    migrarHistoricoParaMultiRdo();
     ordenarAtividadesPadrao();
     saveState(); saveHistory();
     if (dados.chavesDia) {
@@ -6883,6 +7030,8 @@ function restaurarAutoBackup() {
       const data = JSON.parse(raw);
       if (data.state) state = mergeDefaults(data.state);
       if (data.history) history = data.history;
+      // Backup antigo pode vir com chaves só de data — migra ao restaurar.
+      migrarHistoricoParaMultiRdo();
       ordenarAtividadesPadrao();
       saveState(); saveHistory();
       initCurrentDay(todayISO());
@@ -6928,6 +7077,8 @@ function importarBackup(ev) {
       const data = JSON.parse(e.target.result);
       if (data.state) state = mergeDefaults(data.state);
       if (data.history) history = data.history;
+      // Backup antigo pode vir com chaves só de data — migra ao restaurar.
+      migrarHistoricoParaMultiRdo();
       ordenarAtividadesPadrao();
       saveState(); saveHistory();
       initCurrentDay(todayISO());
@@ -6960,7 +7111,7 @@ function apareceVazio() {
   const nColab = state.colaboradores.categorias.reduce((s, c) => s + c.itens.length, 0);
   const nEquip = state.equipamentos.length;
   const nAtiv = state.atividades.length;
-  const nHist = Object.keys(history).length;
+  const nHist = datasDoHistorico().length;
   return nColab === 0 && nEquip === 0 && nAtiv === 0 && nHist === 0;
 }
 
