@@ -2474,6 +2474,120 @@ function datasDoHistorico() {
   return [...new Set(Object.keys(history).map(dataDaChave))].sort();
 }
 
+// ============================================================
+// CADASTRO COM HISTÓRICO — baixa em vez de exclusão
+//
+// "Imagine que tenha um Uno e um Fusca nos veículos leves utilizados hoje.
+//  Amanhã o Fusca sai e fica só o Uno. Se eu volto pra editar o dia de ontem, o
+//  Fusca não está mais nas minhas opções, e se eu salvo o RDO nesta atualização
+//  fica diferente do real."
+//
+// Por isso nada é apagado do cadastro. O item recebe baixa: some das listas
+// dali para frente e continua existindo nos dias em que era vigente.
+//
+// Três campos por item:
+//   inativo    — deu baixa
+//   inativoEm  — YYYY-MM-DD da baixa; é o que define a vigência
+//   statusEm   — ISO 8601, resolve conflito de baixa/retorno entre aparelhos
+//
+// Vale para os quatro grupos: atividades, equipamentos, veículos leves e
+// efetivo (colaborador e categoria inteira).
+// ============================================================
+
+function itemVigenteNoDia(item, dia, usado) {
+  if (usado) return true;                        // lançado naquele dia: aparece sempre
+  if (!item || !item.inativo) return true;       // nunca teve baixa
+  if (!dia || !item.inativoEm) return false;
+  return String(dia) < String(item.inativoEm);   // ainda existia naquela data
+}
+
+// `usados` é um objeto id -> verdadeiro com o que foi lançado no dia.
+function vigentesNoDia(lista, dia, usados) {
+  const u = usados || {};
+  return (lista || []).filter(it => itemVigenteNoDia(it, dia, !!u[it.id]));
+}
+
+function baixadosNoDia(lista) {
+  return (lista || []).filter(it => it && it.inativo);
+}
+
+// Categorias de efetivo com os itens já filtrados. Devolve CÓPIAS das
+// categorias — serve para listar e somar, nunca para alterar o cadastro.
+function categoriasVigentes(dia, usados) {
+  const u = usados || {};
+  return (state.colaboradores.categorias || [])
+    .filter(cat => itemVigenteNoDia(cat, dia, (cat.itens || []).some(c => u[c.id])))
+    .map(cat => ({ ...cat, itens: vigentesNoDia(cat.itens, dia, u) }));
+}
+
+function baixarDoCadastro(item) {
+  if (!item) return;
+  item.inativo = true;
+  // A baixa vale a partir de hoje: o item sai das listas de hoje em diante e
+  // continua nos dias anteriores, que é justamente o ponto.
+  item.inativoEm = todayISO();
+  item.statusEm = new Date().toISOString();
+}
+
+function reativarNoCadastro(item) {
+  if (!item) return;
+  item.inativo = false;
+  item.inativoEm = '';
+  item.statusEm = new Date().toISOString();
+}
+
+// Recadastro de item que deu baixa: reativa em vez de duplicar. Sem isto, o
+// cadastro acumularia dois registros do mesmo veículo/pessoa, e os RDOs
+// antigos apontariam para o registro errado.
+function reativarSeJaExiste(lista, casa) {
+  const achado = (lista || []).find(it => it && it.inativo && casa(it));
+  if (!achado) return null;
+  reativarNoCadastro(achado);
+  return achado;
+}
+
+function rotuloBaixa(item) {
+  return (item && item.inativo && item.inativoEm)
+    ? `removido em ${formatDateBR(item.inativoEm)}`
+    : '';
+}
+
+// Bloco recolhível "🗑️ Removidos (N)" no fim de uma lista do Cadastro, com
+// botão de restaurar. Sem ele o item baixado sumiria por completo da tela e o
+// usuário não teria como trazê-lo de volta.
+function anexarBlocoRemovidos(cont, itens, texto, aoRestaurar) {
+  const removidos = baixadosNoDia(itens);
+  if (!cont || !removidos.length) return;
+
+  const det = document.createElement('details');
+  det.style.marginTop = '10px';
+
+  const sum = document.createElement('summary');
+  sum.textContent = `🗑️ Removidos (${removidos.length})`;
+  sum.style.cssText = 'cursor:pointer;font-size:12px;font-weight:700;color:var(--ink-soft);padding:6px 0';
+  det.appendChild(sum);
+
+  removidos.forEach(it => {
+    const linha = document.createElement('div');
+    linha.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 4px;font-size:12px;opacity:.75';
+
+    const txt = document.createElement('div');
+    txt.innerHTML = `${escapeHtml(texto(it))} <span style="color:var(--red)">— ${escapeHtml(rotuloBaixa(it))}</span>`;
+    linha.appendChild(txt);
+
+    const btn = document.createElement('button');
+    btn.className = 'icon-btn';
+    btn.title = 'Restaurar';
+    btn.textContent = '↩️';
+    btn.addEventListener('click', () => aoRestaurar(it));
+    linha.appendChild(btn);
+
+    det.appendChild(linha);
+  });
+
+  cont.appendChild(det);
+}
+
 // Apontador que este aparelho vem usando. Serve para, num dia com dois RDOs,
 // abrir o do próprio usuário em vez do de outra pessoa.
 const APONTADOR_APARELHO_KEY = 'diario_obras_apontador_aparelho';
@@ -2744,7 +2858,8 @@ function preencherCampos() {
   if (dssMin) {
     // Popular opções da lista de colaboradores
     const opts = ['<option value="">— Selecionar —</option>'];
-    state.colaboradores.categorias.forEach(cat => {
+    // Quem já deu baixa não pode ser oferecido para um dia posterior à baixa.
+    categoriasVigentes(dataAtiva(), currentDay.efetivo).forEach(cat => {
       cat.itens.forEach(c => opts.push(`<option value="${escapeHtml(c.mat+'|'+c.nome)}" ${currentDay.dssMinistrou===c.mat+'|'+c.nome?'selected':''}>${escapeHtml(c.nome)} (${escapeHtml(c.mat)})</option>`));
     });
     dssMin.innerHTML = opts.join('');
@@ -2872,7 +2987,7 @@ function abrirModalAtivParalisada() {
   const sel = document.getElementById('modalAtivParSel');
   const jaParadas = new Set((currentDay.atividadesParalisadas || []).map(p => p.id).filter(Boolean));
   let opts = '<option value="">— Selecionar atividade —</option>';
-  state.atividades.forEach(a => {
+  vigentesNoDia(state.atividades, dataAtiva(), currentDay.atividadesMarcadas).forEach(a => {
     if (jaParadas.has(a.id)) return;
     opts += `<option value="${a.id}">${escapeHtml(a.desc)}</option>`;
   });
@@ -3339,8 +3454,8 @@ function gerarPdfRDO() {
   const equipsAtivos = state.equipamentos.filter(e => savedEquip[e.id]);
   const vlAtivos = (state.veiculosFrota || []).filter(v => savedVL[v.id]);
   const paradosDay = day.veiculosParados || {};
-  const equipsParados = state.equipamentos.filter(e => !savedEquip[e.id]);
-  const vlParados = (state.veiculosFrota || []).filter(v => !savedVL[v.id]);
+  const equipsParados = vigentesNoDia(state.equipamentos, day.data, savedEquip).filter(e => !savedEquip[e.id]);
+  const vlParados = vigentesNoDia(state.veiculosFrota, day.data, savedVL).filter(v => !savedVL[v.id]);
 
   let linhasOp = '';
   if (equipsAtivos.length || vlAtivos.length || equipsParados.length || vlParados.length) {
@@ -4155,8 +4270,8 @@ function buildPayloadGoogle(diarioData) {
   const savedVL = S.get(`vlDia_${day.data}`) || {};
   const vlAtivos = (state.veiculosFrota || []).filter(v => savedVL[v.id]);
   const savedEquipBP = S.get(`equipDia_${day.data}`) || {};
-  const equipsParadosBP = state.equipamentos.filter(e => !savedEquipBP[e.id]);
-  const vlParadosBP = (state.veiculosFrota || []).filter(v => !savedVL[v.id]);
+  const equipsParadosBP = vigentesNoDia(state.equipamentos, day.data, savedEquipBP).filter(e => !savedEquipBP[e.id]);
+  const vlParadosBP = vigentesNoDia(state.veiculosFrota, day.data, savedVL).filter(v => !savedVL[v.id]);
   const parados = day.veiculosParados || {};
   const paradosTexto = [
     ...equipsParadosBP.map(e => {
@@ -4304,8 +4419,9 @@ function renderDiario() {
 }
 
 function marcarTodosTipo(tipo, valor) {
+  const _dia = dataAtiva();
   if (tipo === 'efetivo') {
-    state.colaboradores.categorias.forEach(cat => {
+    categoriasVigentes(_dia, currentDay.efetivo).forEach(cat => {
       cat.itens.forEach(c => {
         if (valor) currentDay.efetivo[c.id] = true;
         else delete currentDay.efetivo[c.id];
@@ -4313,13 +4429,13 @@ function marcarTodosTipo(tipo, valor) {
     });
     renderEfetivoDia();
   } else if (tipo === 'atividades') {
-    state.atividades.forEach(a => {
+    vigentesNoDia(state.atividades, _dia, currentDay.atividadesMarcadas).forEach(a => {
       if (valor) currentDay.atividadesMarcadas[a.id] = true;
       else delete currentDay.atividadesMarcadas[a.id];
     });
     renderAtividadesDia();
   } else if (tipo === 'equipamentos') {
-    state.equipamentos.forEach(e => {
+    vigentesNoDia(state.equipamentos, _dia, currentDay.equipamentos).forEach(e => {
       if (valor) {
         currentDay.equipamentos[e.id] = currentDay.equipamentos[e.id] || { ativo: true, operadorMat: '', operadorNome: '', status: 'Operando' };
         currentDay.equipamentos[e.id].ativo = true;
@@ -4424,7 +4540,7 @@ function renderEfetivoDia() {
   let totalP = 0, totalC = 0;
   let html = '<div style="padding:12px 0">';
 
-  state.colaboradores.categorias.forEach(cat => {
+  categoriasVigentes(dataAtiva(), savedEfetivo).forEach(cat => {
     const presentes = cat.itens.filter(c => savedEfetivo[c.id]);
     totalP += presentes.length;
     totalC += cat.itens.length;
@@ -4454,9 +4570,10 @@ function renderEquipDia() {
   cont.innerHTML = '';
   const dia = dataAtiva();
   const savedEquip = S.get(`equipDia_${dia}`) || {};
-  const selecionados = state.equipamentos.filter(eq => savedEquip[eq.id]);
+  const equipsDoDia = vigentesNoDia(state.equipamentos, dia, savedEquip);
+  const selecionados = equipsDoDia.filter(eq => savedEquip[eq.id]);
 
-  if (state.equipamentos.length === 0) {
+  if (equipsDoDia.length === 0) {
     cont.innerHTML = '<div class="empty">Cadastre equipamentos em ⚙️ Cadastro</div>';
     return;
   }
@@ -4573,7 +4690,9 @@ function atualizarSeletorOperador() {
   const termosMotorista = ['motorist']; // cobre "Motoristas", "Motorista"
   const termosSugeridos = isMot ? termosMotorista : termosOperador;
 
-  const catSugerida = state.colaboradores.categorias.find(c =>
+  // Só quem era vigente no dia do RDO em edição.
+  const _catsOp = categoriasVigentes(dataAtiva(), currentDay.efetivo);
+  const catSugerida = _catsOp.find(c =>
     termosSugeridos.some(t => c.nome.toLowerCase().includes(t))
   );
 
@@ -4583,13 +4702,13 @@ function atualizarSeletorOperador() {
       categorias = [catSugerida];
     } else {
       // Se não achar categoria específica, mostra todas
-      categorias = state.colaboradores.categorias;
+      categorias = _catsOp;
     }
   } else {
     // Outras equipes: todas exceto a sugerida
     categorias = catSugerida
-      ? state.colaboradores.categorias.filter(c => c.id !== catSugerida.id)
-      : state.colaboradores.categorias;
+      ? _catsOp.filter(c => c.id !== catSugerida.id)
+      : _catsOp;
   }
   
   list.innerHTML = '';
@@ -4660,7 +4779,9 @@ function salvarEquipStatus() {
 let activeVLId = null;
 
 function marcarTodosVL(valor) {
-  const frota = state.veiculosFrota || [];
+  const dia = dataAtiva();
+  const savedVL = S.get(`vlDia_${dia}`) || {};
+  const frota = vigentesNoDia(state.veiculosFrota, dia, savedVL);
   frota.forEach(v => {
     if (valor) {
       if (!currentDay.veiculosLeves) currentDay.veiculosLeves = [];
@@ -4681,7 +4802,8 @@ function renderVeiculosLevesDia() {
   const frota = state.veiculosFrota || [];
   const dia = dataAtiva();
   const savedVL = S.get(`vlDia_${dia}`) || {};
-  const selecionados = frota.filter(v => savedVL[v.id]);
+  const frotaDoDia = vigentesNoDia(frota, dia, savedVL);
+  const selecionados = frotaDoDia.filter(v => savedVL[v.id]);
 
   if (frota.length === 0) {
     cont.innerHTML = '<div class="empty">Cadastre veículos leves em ⚙️ Cadastro > Equip.</div>';
@@ -4720,9 +4842,9 @@ function renderVeiculosParados() {
   const savedVL    = S.get(`vlDia_${data}`) || {};
 
   // Equipamentos não selecionados
-  const equipsParados = state.equipamentos.filter(e => !savedEquip[e.id]).sort((a, b) => a.desc.localeCompare(b.desc, 'pt-BR'));
+  const equipsParados = vigentesNoDia(state.equipamentos, data, savedEquip).filter(e => !savedEquip[e.id]).sort((a, b) => a.desc.localeCompare(b.desc, 'pt-BR'));
   // Veículos leves não selecionados
-  const vlParados = (state.veiculosFrota || []).filter(v => !savedVL[v.id]).sort((a, b) => a.desc.localeCompare(b.desc, 'pt-BR'));
+  const vlParados = vigentesNoDia(state.veiculosFrota, data, savedVL).filter(v => !savedVL[v.id]).sort((a, b) => a.desc.localeCompare(b.desc, 'pt-BR'));
 
   if (equipsParados.length === 0 && vlParados.length === 0) {
     cont.innerHTML = '<div class="empty">Todos os equipamentos e veículos estão em uso hoje</div>';
@@ -4780,15 +4902,16 @@ function abrirSeletorVL(vlId) {
   const searchEl = document.getElementById('modalVLSearch');
   searchEl.value = '';
   // Separar categoria Motoristas das demais
-  const catMotoristas = state.colaboradores.categorias.find(c => c.nome.toLowerCase().includes('motorist'));
-  const outrasCateg = state.colaboradores.categorias.filter(c => !c.nome.toLowerCase().includes('motorist'));
+  const _catsVL = categoriasVigentes(dataAtiva(), currentDay.efetivo);
+  const catMotoristas = _catsVL.find(c => c.nome.toLowerCase().includes('motorist'));
+  const outrasCateg = _catsVL.filter(c => !c.nome.toLowerCase().includes('motorist'));
 
   const renderVLList = (term) => {
     list.innerHTML = '';
     // Mostrar motoristas primeiro (destaque)
     const categsParaMostrar = catMotoristas
       ? [catMotoristas, ...outrasCateg]
-      : state.colaboradores.categorias;
+      : _catsVL;
     let temItem = false;
     categsParaMostrar.forEach(cat => {
       const filtrados = cat.itens.filter(c =>
@@ -4871,7 +4994,9 @@ function _ehResponsavelValido(texto) {
 
 function _apontadoresFiltrados() {
   const lista = [];
-  (state.colaboradores.categorias || []).forEach(cat => {
+  // Vigência: quem já deu baixa continua no RDO que assinou, mas não é
+  // oferecido para um dia posterior à baixa.
+  categoriasVigentes(dataAtiva(), (currentDay && currentDay.efetivo) || {}).forEach(cat => {
     const catValida = _ehResponsavelValido(cat.nome);
     (cat.itens || []).forEach(c => {
       if (catValida || _ehResponsavelValido(c.funcao)) {
@@ -5336,7 +5461,7 @@ function renderConfigEquip() {
   }
   const dia = dataAtiva();
   const savedEquip = S.get(`equipDia_${dia}`) || {};
-  const equipamentosOrdenados = [...state.equipamentos].sort((a, b) => a.desc.localeCompare(b.desc, 'pt-BR'));
+  const equipamentosOrdenados = vigentesNoDia(state.equipamentos, dia, savedEquip).sort((a, b) => a.desc.localeCompare(b.desc, 'pt-BR'));
   equipamentosOrdenados.forEach(eq => {
     const checked = !!savedEquip[eq.id];
     const row = document.createElement('div');
@@ -5390,6 +5515,10 @@ function renderConfigEquip() {
     row.appendChild(acts);
     cont.appendChild(row);
   });
+
+  anexarBlocoRemovidos(cont, state.equipamentos, e => `${e.numero} — ${e.desc}`,
+    e => { reativarNoCadastro(e); saveState(); renderConfigEquip(); toast('Restaurado'); });
+
 }
 
 function renderConfigAtiv() {
@@ -5401,7 +5530,7 @@ function renderConfigAtiv() {
   }
   const dia = dataAtiva();
   const savedAtiv = S.get(`ativDia_${dia}`) || {};
-  state.atividades.forEach(a => {
+  vigentesNoDia(state.atividades, dia, savedAtiv).forEach(a => {
     const checked = !!savedAtiv[a.id];
     const wrap = document.createElement('div');
     wrap.className = 'ativ-item-wrap';
@@ -5479,6 +5608,10 @@ function renderConfigAtiv() {
 
     cont.appendChild(wrap);
   });
+
+  anexarBlocoRemovidos(cont, state.atividades, a => a.desc,
+    a => { reativarNoCadastro(a); saveState(); renderConfigAtiv(); toast('Restaurada'); });
+
 }
 
 function renderConfigEventos(tipo) {
@@ -5550,8 +5683,15 @@ function salvarCategoria() {
   toast('Salvo');
 }
 function removerCategoria(id) {
-  confirmar('Remover esta categoria e todos os colaboradores vinculados?', () => {
-    state.colaboradores.categorias = state.colaboradores.categorias.filter(c => c.id !== id);
+  confirmar('Remover esta categoria e os colaboradores vinculados?\n\nOs dias já lançados continuam intactos.', () => {
+    // Baixa, não exclusão: os RDOs já fechados precisam continuar mostrando
+    // quem estava nesta categoria. A categoria leva os itens junto, e restaurar
+    // traz de volta quem saiu na mesma data.
+    const cat = state.colaboradores.categorias.find(c => c.id === id);
+    if (cat) {
+      baixarDoCadastro(cat);
+      (cat.itens || []).forEach(baixarDoCadastro);
+    }
     saveState();
     renderConfigColab();
     toast('Removido');
@@ -5588,7 +5728,10 @@ function salvarColaborador() {
     const c = cat.itens.find(x => x.id === editingItem.id);
     c.mat = mat; c.nome = nome; c.funcao = funcao; c.empresa = empresa;
   } else {
-    cat.itens.push({ id: uid('p'), mat, nome, funcao, empresa });
+    const _coVolta = reativarSeJaExiste(cat.itens, c =>
+      (mat && c.mat === mat) || (!mat && c.nome === nome));
+    if (_coVolta) { Object.assign(_coVolta, { mat, nome, funcao, empresa }); }
+    else cat.itens.push({ id: uid('p'), mat, nome, funcao, empresa });
   }
   saveState();
   fecharModal('modalColab');
@@ -5598,7 +5741,7 @@ function salvarColaborador() {
 function removerColaborador(catId, id) {
   confirmar('Remover este colaborador?', () => {
     const cat = state.colaboradores.categorias.find(c => c.id === catId);
-    cat.itens = cat.itens.filter(c => c.id !== id);
+    baixarDoCadastro((cat && cat.itens || []).find(c => c.id === id));
     saveState();
     renderConfigColab();
     toast('Removido');
@@ -5614,7 +5757,7 @@ function renderConfigVL() {
   if (frota.length === 0) { cont.innerHTML = '<div class="empty">Nenhum veículo leve cadastrado</div>'; return; }
   const dia = dataAtiva();
   const savedVL = S.get(`vlDia_${dia}`) || {};
-  const frotaOrdenada = [...frota].sort((a, b) => a.desc.localeCompare(b.desc, 'pt-BR'));
+  const frotaOrdenada = vigentesNoDia(frota, dia, savedVL).sort((a, b) => a.desc.localeCompare(b.desc, 'pt-BR'));
   frotaOrdenada.forEach(v => {
     const checked = !!savedVL[v.id];
     const row = document.createElement('div');
@@ -5665,11 +5808,15 @@ function renderConfigVL() {
     row.appendChild(acts);
     cont.appendChild(row);
   });
+
+  anexarBlocoRemovidos(cont, state.veiculosFrota, v => `${v.desc}${v.placa ? ' (' + v.placa + ')' : ''}`,
+    v => { reativarNoCadastro(v); saveState(); renderConfigVL(); toast('Restaurado'); });
+
 }
 function _atualizarVLDescDatalist() {
   const dl = document.getElementById('vlDescSugestoes');
   if (!dl) return;
-  const nomes = [...new Set((state.veiculosFrota || []).map(v => v.desc.trim()))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const nomes = [...new Set((state.veiculosFrota || []).filter(v => !v.inativo).map(v => v.desc.trim()))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   dl.innerHTML = nomes.map(n => `<option value="${escapeHtml(n)}">`).join('');
 }
 function abrirModalVeiculoFrota() {
@@ -5701,13 +5848,16 @@ function salvarVeiculoFrota() {
     const v = state.veiculosFrota.find(x => x.id === editingItem.id);
     v.numero = numero; v.desc = desc; v.placa = placa;
   } else {
-    state.veiculosFrota.push({ id: uid('vf'), numero, desc, placa });
+    const _vlVolta = reativarSeJaExiste(state.veiculosFrota, v =>
+      (placa && v.placa === placa) || (!placa && v.desc === desc));
+    if (_vlVolta) { Object.assign(_vlVolta, { numero, desc, placa }); }
+    else state.veiculosFrota.push({ id: uid('vf'), numero, desc, placa });
   }
   saveState(); fecharModal('modalVeiculoFrota'); renderConfigVL(); toast('Salvo');
 }
 function removerVeiculoFrota(id) {
   confirmar('Remover este veículo da frota?', () => {
-    state.veiculosFrota = (state.veiculosFrota || []).filter(v => v.id !== id);
+    baixarDoCadastro((state.veiculosFrota || []).find(v => v.id === id));
     saveState(); renderConfigVL(); toast('Removido');
   });
 }
@@ -5756,7 +5906,7 @@ function _atualizarLocalObraDatalist() {
 function _atualizarEquipDescDatalist() {
   const dl = document.getElementById('equipDescSugestoes');
   if (!dl) return;
-  const nomes = [...new Set(state.equipamentos.map(e => e.desc.trim()))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const nomes = [...new Set(state.equipamentos.filter(e => !e.inativo).map(e => e.desc.trim()))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   dl.innerHTML = nomes.map(n => `<option value="${escapeHtml(n)}">`).join('');
 }
 function editarEquipamento(id) {
@@ -5778,7 +5928,10 @@ function salvarEquipamento() {
     const eq = state.equipamentos.find(e => e.id === editingItem.id);
     eq.numero = numero; eq.desc = desc; eq.isMotorista = isMotorista;
   } else {
-    state.equipamentos.push({ id: uid('eq'), numero, desc, isMotorista });
+    const _eqVolta = reativarSeJaExiste(state.equipamentos, e =>
+      (numero && e.numero === numero) || (!numero && e.desc === desc));
+    if (_eqVolta) { Object.assign(_eqVolta, { numero, desc, isMotorista }); }
+    else state.equipamentos.push({ id: uid('eq'), numero, desc, isMotorista });
   }
   saveState();
   fecharModal('modalEquip');
@@ -5787,7 +5940,7 @@ function salvarEquipamento() {
 }
 function removerEquipamento(id) {
   confirmar('Remover este equipamento?', () => {
-    state.equipamentos = state.equipamentos.filter(e => e.id !== id);
+    baixarDoCadastro(state.equipamentos.find(e => e.id === id));
     saveState();
     renderConfigEquip();
     toast('Removido');
@@ -6003,7 +6156,9 @@ function salvarAtividade() {
     } else {
       // Criar nova
       const newId = uid('a');
-      state.atividades.push({ id: newId, desc, local, unidade });
+      const _atVolta = reativarSeJaExiste(state.atividades, a => a.desc === desc);
+      if (_atVolta) { Object.assign(_atVolta, { desc, local, unidade }); }
+      else state.atividades.push({ id: newId, desc, local, unidade });
     }
 
     ordenarAtividadesPadrao();
@@ -6017,7 +6172,9 @@ function salvarAtividade() {
 }
 function removerAtividade(id) {
   confirmar('Remover esta atividade?', () => {
-    state.atividades = state.atividades.filter(a => a.id !== id);
+    baixarDoCadastro(state.atividades.find(a => a.id === id));
+    // Tira do rascunho de HOJE; um dia passado que já registrou a atividade
+    // fica intacto, porque lá ela consta como usada.
     const dia = dataAtiva();
     let savedAtiv = S.get(`ativDia_${dia}`) || {};
     delete savedAtiv[id];
@@ -6211,8 +6368,8 @@ function buildRelatorio(day) {
   
   // Veículos/Equipamentos Parados
   const savedEquipWA = S.get(`equipDia_${day.data}`) || {};
-  const equipsParadosWA = state.equipamentos.filter(e => !savedEquipWA[e.id]);
-  const vlParadosWA = (state.veiculosFrota || []).filter(v => !savedVL[v.id]);
+  const equipsParadosWA = vigentesNoDia(state.equipamentos, day.data, savedEquipWA).filter(e => !savedEquipWA[e.id]);
+  const vlParadosWA = vigentesNoDia(state.veiculosFrota, day.data, savedVL).filter(v => !savedVL[v.id]);
   if (equipsParadosWA.length > 0 || vlParadosWA.length > 0) {
     const paradosDay = day.veiculosParados || {};
     txt += `*🔴 Veículos/Equipamentos Parados*\n`;
