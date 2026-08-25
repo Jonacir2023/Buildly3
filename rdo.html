@@ -1305,8 +1305,7 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
     <div class="section-title">
       <div class="section-title-text">📍 Local da Obra</div>
     </div>
-    <input type="text" id="localObra" list="localObraList" placeholder="Ex.: Bloco A — 2º Pavimento" style="margin-bottom:8px">
-    <datalist id="localObraList"></datalist>
+    <select id="localObra" style="margin-bottom:8px"></select>
     <textarea id="descricaoLocal" placeholder="Descrição do local onde os trabalhos foram executados..." style="min-height:72px;resize:vertical"></textarea>
   </div>
   
@@ -2236,6 +2235,17 @@ const DEFAULT_DATA = {
   ]
 };
 
+// Locais de execução da obra — lista fechada.
+//
+// Era texto livre, e o mesmo lugar aparecia escrito de várias formas
+// ("Filtros ETA", "filtro eta", "ETA"), o que estragava qualquer acumulado por
+// local. Editar esta lista é o que muda as opções do campo.
+const LOCAIS_EXECUCAO = [
+  'Filtro 1', 'Filtro 2', 'Filtro 3', 'Filtro 4', 'Filtro 5',
+  'Filtro 6', 'Filtro 7', 'Filtro 8', 'Filtro 9', 'Filtro 10',
+  'ETA', 'Casa de Bombas', 'Canal do Reservatório'
+];
+
 const EMPTY_DAY = () => ({
   data: '',
   tempoManha: '',
@@ -2614,7 +2624,10 @@ function voltarParaHoje() {
 }
 
 function preencherCampos() {
-  ['cafeInicio','cafeFim','almocoInicio','almocoFim','encerramento','dssTema','dssHorario','atividadesExtra','observacoesDia','localObra','descricaoLocal'].forEach(k => {
+  // localObra sai do laço genérico: é um <select>, e atribuir .value antes de
+  // as opções existirem não seleciona nada — o campo apareceria em branco num
+  // dia que tem local gravado. _atualizarLocalObraDatalist() monta e seleciona.
+  ['cafeInicio','cafeFim','almocoInicio','almocoFim','encerramento','dssTema','dssHorario','atividadesExtra','observacoesDia','descricaoLocal'].forEach(k => {
     const el = document.getElementById(k);
     if (el) el.value = currentDay[k] || '';
   });
@@ -2648,12 +2661,18 @@ function preencherCampos() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  ['cafeInicio','cafeFim','almocoInicio','almocoFim','encerramento','dssTema','dssHorario','atividadesExtra','observacoesDia','localObra','descricaoLocal'].forEach(k => {
+  ['cafeInicio','cafeFim','almocoInicio','almocoFim','encerramento','dssTema','dssHorario','atividadesExtra','observacoesDia','descricaoLocal'].forEach(k => {
     const el = document.getElementById(k);
     if (el) el.addEventListener('input', () => {
       currentDay[k] = el.value;
       salvarDiarioDia(false);
     });
+  });
+  // Local da Obra é <select>: 'change' é o evento próprio dele.
+  const localSel = document.getElementById('localObra');
+  if (localSel) localSel.addEventListener('change', () => {
+    currentDay.localObra = localSel.value;
+    salvarDiarioDia(false);
   });
   // DSS ministrou
   const dssMinEl = document.getElementById('dssMinistrou');
@@ -2811,6 +2830,24 @@ function removerAtivParalisada(idx) {
 // ============================================================
 const MAX_FOTOS_DIA = 20;
 
+// Legenda da foto — função única para tela, PDF, WhatsApp e planilha.
+//
+// Antes cada foto tinha um campo de texto livre E uma lista de atividades, e
+// cada destino montava a legenda do seu jeito (o PDF chegava a numerar duas
+// vezes: "1. Foto 1 - ..."). Agora a legenda vem da atividade escolhida e sai
+// igual nos quatro lugares.
+//
+// Legenda antiga em texto livre continua aparecendo enquanto a foto não tiver
+// atividade vinculada — não se apaga o que já foi escrito.
+function legendaFoto(foto, indice) {
+  const f = foto || {};
+  const daAtividade = f.ativId
+    ? ((state.atividades.find(a => a.id === f.ativId) || {}).desc || '')
+    : '';
+  const texto = (daAtividade || f.legenda || '').trim();
+  return `Foto ${indice + 1}` + (texto ? ` - ${texto}` : '');
+}
+
 function renderFotosDia() {
   const grid = document.getElementById('fotosGrid');
   const cont = document.getElementById('fotosContador');
@@ -2827,9 +2864,7 @@ function renderFotosDia() {
         <button onclick="removerFotoDia(${i})" title="Remover"
           style="position:absolute;top:4px;right:4px;width:22px;height:22px;border:none;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:12px;line-height:1;cursor:pointer">✕</button>
       </div>
-      <input type="text" placeholder="Legenda..." value="${escAttr(f.legenda || '')}"
-        onchange="salvarLegendaFoto(${i}, this.value)"
-        style="width:100%;margin-top:4px;font-size:11px;padding:5px 6px">
+      <div style="margin-top:4px;font-size:11px;color:var(--ink-soft)">${escapeHtml(legendaFoto(f, i))}</div>
       <select onchange="salvarAtivFoto(${i}, this.value)"
         style="width:100%;margin-top:3px;font-size:11px;padding:4px 4px;border:1px solid var(--line);border-radius:5px;background:var(--bg-card);color:var(--ink)">
         <option value="">📎 Geral</option>
@@ -3223,15 +3258,14 @@ function gerarPdfRDO() {
   // Registro fotográfico — grade de imagens (miniaturas do Drive)
   let blocoFotos = '';
   if ((day.fotos || []).length) {
-    const descAtiv = id => (state.atividades.find(a => a.id === id) || {}).desc || '';
     const cels = day.fotos.map((f, i) => {
-      const legenda = f.legenda || descAtiv(f.ativId) || `Foto ${i + 1}`;
+      const legenda = legendaFoto(f, i);
       // Sem crossorigin: o Drive não envia cabeçalho CORS nessa URL de
       // miniatura, e exigi-lo faz a imagem não carregar de jeito nenhum.
       // É a mesma forma usada na galeria do diário, onde as fotos aparecem.
       return `<figure class="pdf-foto">
           <img src="https://drive.google.com/thumbnail?id=${escHtml(f.fileId)}&sz=w400" alt="Foto ${i + 1}" loading="eager">
-          <figcaption>${i + 1}. ${escHtml(legenda)}</figcaption>
+          <figcaption>${escHtml(legenda)}</figcaption>
         </figure>`;
     });
     // 2 fotos por linha, usando tabela (o html2canvas lida melhor com tabela que com grid)
@@ -3929,12 +3963,30 @@ function salvarPadAssinatura() {
 // envio para a planilha quanto no contexto que vai junto da pergunta ao robô,
 // para que os dois enxerguem exatamente o mesmo conteúdo.
 function textoAtividadesDia(day) {
+  // A linha da atividade leva os DOIS locais: o do cadastro da atividade e o
+  // escolhido na lista do dia (Local da Obra). Quem lê a planilha precisa saber
+  // onde aquilo foi executado, e os dois nem sempre coincidem.
+  //
+  //   Inspeção de bags – ETA – Filtro 9 (5 un)
+  //   Enchimento de bags – ETA (72 m³)
+  //   Limpeza geral – Casa de Bombas
+  //
+  // Locais iguais aparecem uma vez só; local ausente simplesmente não entra;
+  // sem quantidade, não escreve os parênteses.
+  const localDoDia = (day.localObra || '').trim();
+  const comLocais = (desc, localCadastro, sufixo) => {
+    const locais = [];
+    [(localCadastro || '').trim(), localDoDia].forEach(l => {
+      if (l && !locais.includes(l)) locais.push(l);
+    });
+    return desc + locais.map(l => ' – ' + l).join('') + (sufixo || '');
+  };
   return [
     ...state.atividades.filter(a => (day.atividadesMarcadas || {})[a.id]).map(a => {
       const qtd = day.atividadesQtd && day.atividadesQtd[a.id];
-      return `${a.desc}${a.local ? ' – ' + a.local : ''}${qtd ? ' (' + qtd + ' ' + (a.unidade||'') + ')' : ''}`;
+      return comLocais(a.desc, a.local, qtd ? ' (' + qtd + ' ' + (a.unidade || '') + ')' : '');
     }),
-    ...(day.atividadesAvulsas || []).map(a => `${a.desc}${a.local ? ' – ' + a.local : ''}`),
+    ...(day.atividadesAvulsas || []).map(a => comLocais(a.desc, a.local, '')),
     ...(day.atividadesExtra ? day.atividadesExtra.split('\n').filter(x => x.trim()) : [])
   ].join('\n')
   + ((day.atividadesParalisadas || []).length
@@ -4048,7 +4100,7 @@ function buildPayloadGoogle(diarioData) {
     apontador:            day.apontador || '',
     localObra:            day.localObra || '',
     descricaoLocal:       day.descricaoLocal || '',
-    fotos:                (day.fotos || []).map(f => (f.legenda ? f.legenda + ' — ' : '') + f.url).join('\n')
+    fotos:                (day.fotos || []).map((f, i) => legendaFoto(f, i) + ' — ' + f.url).join('\n')
   };
 }
 
@@ -4079,10 +4131,12 @@ async function salvarDiarioGoogle(diarioData) {
 
 function salvarDiarioDia(notificar) {
   if (!currentDay || !currentDay.data) return;
-  if (notificar && !(currentDay.apontador || '').trim()) {
-    toast('❌ Selecione o Apontador Responsável antes de salvar');
-    const sel = document.getElementById('apontadorSelect');
-    if (sel) { sel.scrollIntoView({ behavior: 'smooth', block: 'center' }); sel.focus(); }
+  // Vale para os dois caminhos. Antes só o salvamento manual era barrado, e o
+  // automático — que dispara a cada tecla — gravava o dia sem responsável.
+  // No automático a recusa é silenciosa: avisar a cada tecla seria pior que o
+  // problema. O dia continua em memória e grava assim que o responsável entrar.
+  if (!diarioPodeSerSalvo(currentDay)) {
+    if (notificar) avisarFaltaResponsavel();
     return;
   }
   const temDado = currentDay.dssTema || currentDay.dssHorario || currentDay.atividadesExtra || currentDay.observacoesDia || currentDay.tempoManha || currentDay.tempoTarde ||
@@ -4693,17 +4747,40 @@ function _todosColaboradores() {
   return lista;
 }
 
+// Quem pode assinar o diário: apontador ou supervisor.
+//
+// Aceita as três raízes porque o cadastro real escreve de formas diferentes —
+// "Apontador", categoria "Qualidade / Apontamento", "Supervisor de Obra",
+// "Supervisão". Só "apontador" deixava de fora metade de quem de fato assina.
+function _ehResponsavelValido(texto) {
+  const t = String(texto || '').toLowerCase();
+  return t.includes('apontador') || t.includes('apontamento') || t.includes('supervis');
+}
+
 function _apontadoresFiltrados() {
   const lista = [];
   (state.colaboradores.categorias || []).forEach(cat => {
-    const catIsApontador = cat.nome.toLowerCase().includes('apontador');
+    const catValida = _ehResponsavelValido(cat.nome);
     (cat.itens || []).forEach(c => {
-      if (catIsApontador || (c.funcao || '').toLowerCase().includes('apontador')) {
+      if (catValida || _ehResponsavelValido(c.funcao)) {
         lista.push(`${c.mat} – ${c.nome} (${cat.nome})`);
       }
     });
   });
   return lista;
+}
+
+// O diário só existe com responsável. Sem isso, o salvamento automático criava
+// entradas sem apontador no histórico — RDO é documento contratual e não pode
+// ficar sem quem responde por ele.
+function diarioPodeSerSalvo(day) {
+  return !!String((day && day.apontador) || '').trim();
+}
+
+function avisarFaltaResponsavel() {
+  toast('❌ Selecione o Apontador ou Supervisor responsável antes de salvar');
+  const sel = document.getElementById('apontadorSelect');
+  if (sel) { sel.scrollIntoView({ behavior: 'smooth', block: 'center' }); sel.focus(); }
 }
 
 function renderApontadorDia() {
@@ -5531,11 +5608,24 @@ function _atualizarResumoObraNosDiario() {
   }
 }
 
+// Monta o <select> do Local da Obra a partir de LOCAIS_EXECUCAO.
+//
+// Um valor que não está na lista — lançado quando o campo era texto livre, ou
+// vindo de outro aparelho — entra como opção extra já selecionada. Descartar
+// silenciosamente apagaria o local de um RDO que já foi fechado.
 function _atualizarLocalObraDatalist() {
-  const dl = document.getElementById('localObraList');
-  if (!dl) return;
-  const hist = state.localObraHistorico || [];
-  dl.innerHTML = hist.map(l => `<option value="${escapeHtml(l)}">`).join('');
+  const sel = document.getElementById('localObra');
+  if (!sel) return;
+  const atual = (currentDay && currentDay.localObra) || '';
+  const opcoes = ['<option value="">— Selecionar local —</option>'];
+  LOCAIS_EXECUCAO.forEach(l => {
+    opcoes.push(`<option value="${escapeHtml(l)}"${l === atual ? ' selected' : ''}>${escapeHtml(l)}</option>`);
+  });
+  if (atual && !LOCAIS_EXECUCAO.includes(atual)) {
+    opcoes.push(`<option value="${escapeHtml(atual)}" selected>${escapeHtml(atual)}</option>`);
+  }
+  sel.innerHTML = opcoes.join('');
+  sel.value = atual;
 }
 
 function _atualizarEquipDescDatalist() {
@@ -6051,7 +6141,7 @@ function buildRelatorio(day) {
   if ((day.fotos || []).length > 0) {
     txt += `\n${divisor}\n\n`;
     txt += `*📷 Fotos do Dia — ${day.fotos.length}*\n`;
-    day.fotos.forEach((f, i) => { txt += `${i + 1}. ${f.legenda ? f.legenda + ' — ' : ''}${f.url}\n`; });
+    day.fotos.forEach((f, i) => { txt += `${legendaFoto(f, i)} — ${f.url}\n`; });
   }
 
   // Observações do Dia
