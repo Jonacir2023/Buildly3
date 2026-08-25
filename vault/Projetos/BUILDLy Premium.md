@@ -44,6 +44,38 @@ Manutenção. Ver [[Notas/Arquitetura do App]].
 
 ## Histórico
 
+### 25/08/2026 — RDO reescrito para dois apontadores (8 correções)
+
+A maior mudança desde a criação do cofre. Oito correções pedidas para o RDO, todas em `main`
+(PRs #7 e #8, mesclados) — e portanto **no ar para a equipe**. O `rdo.html` foi de ~6.900 para
+~7.500 linhas.
+
+Quatro delas são estruturais e cada uma virou decisão própria:
+
+- **Um RDO por apontador no mesmo dia** — a chave do histórico virou `data#apontador`. Antes, o
+  segundo apontador a salvar apagava o RDO do primeiro. Ver
+  [[Decisões/2026-08-25 Um RDO por apontador no mesmo dia]].
+- **Cadastro dá baixa, não apaga** — item removido continua existindo nos dias anteriores à
+  baixa. Ver [[Decisões/2026-08-25 Baixa lógica no cadastro do RDO]].
+- **Sincronização entre aparelhos a cada 3 minutos**, com política de conflito que nunca
+  sobrescreve às cegas. Ver [[Decisões/2026-08-25 Sincronização entre aparelhos]].
+- **Responsável obrigatório** para gravar — inclusive no salvamento automático, que era
+  justamente o que criava RDO anônimo.
+
+As outras quatro são de qualidade do documento: local da obra virou lista fechada de 13 opções,
+a atividade passou a sair com os dois locais, a legenda da foto virou função única
+(`Foto 3 - Concretagem`, igual na tela, no PDF, no WhatsApp e na planilha), e a numeração dupla
+do PDF sumiu. Tudo reunido em [[Notas/RDO — Regras do Módulo]].
+
+**O que isso significa para a equipe agora:** ao abrir o RDO, cada celular roda
+`migrarHistoricoParaMultiRdo()` sozinho e reindexa o histórico local. É idempotente e foi
+testada, mas é transformação de dado real — se algum apontador relatar "sumiu RDO", a primeira
+coisa a olhar é essa chave, não a planilha (que não foi tocada).
+
+Nenhum teste tocou o Google: tudo foi validado em navegador headless, com `page.route()`
+interceptando `script.google.com`. A sincronização, em particular, **só se prova com dois
+celulares reais**.
+
 ### 24/08/2026 — Os 5 PRs mesclados; o app mudou, o backend não
 
 Todos os PRs abertos em 21/08 entraram em `main` (`6f159c6`), sem conflito. O `main` mesclado
@@ -109,6 +141,13 @@ Já estão no ar (mesclados em 24/08), mas nenhum foi visto num aparelho de verd
       Manutenção (não testadas individualmente), e em desktop ≥900px.
 - [ ] **Caixa do código de acesso** — confirmar que aparece uma vez e que o app segue normal
       depois.
+- [ ] **RDO com dois apontadores** — dois celulares, mesma obra, mesmo dia: os dois RDOs têm que
+      coexistir e cada um enxergar o do outro depois da sincronização. **É o teste que fecha o
+      item 1** — nada nele foi provado contra o Google.
+- [ ] **Migração do histórico** — confirmar no celular de quem já tem RDO antigo que o calendário
+      continua mostrando tudo depois da reindexação.
+- [ ] **Baixa e restauração no cadastro** — dar baixa num veículo e conferir que o RDO de ontem
+      continua listando ele.
 
 ### Em aberto
 
@@ -152,5 +191,6 @@ compartilhado, sem notas cruzadas com outros projetos.
 - [[Notas/Arquitetura do App]]
 - [[Notas/Contrato do Backend]]
 - [[Notas/Armazenamento Local]]
+- [[Notas/RDO — Regras do Módulo]]
 - [[Notas/Regras Operacionais Críticas]]
 - [[Decisões/Índice de Decisões]]

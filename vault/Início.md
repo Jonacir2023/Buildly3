@@ -20,6 +20,7 @@ por que as coisas são como são, o que já foi decidido, e o que ainda está em
 | [[Notas/Arquitetura do App]] | Como o shell e os 9 apps se encaixam |
 | [[Notas/Contrato do Backend]] | Todos os endpoints do Apps Script, entrada e saída |
 | [[Notas/Armazenamento Local]] | Chaves do localStorage e as armadilhas de cada uma |
+| [[Notas/RDO — Regras do Módulo]] | O app mais delicado — e o único que gera documento contratual |
 | [[Notas/Regras Operacionais Críticas]] | O que nunca fazer (erros que já custaram caro) |
 
 ## Índices
