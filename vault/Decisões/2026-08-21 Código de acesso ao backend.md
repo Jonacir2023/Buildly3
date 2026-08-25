@@ -6,7 +6,8 @@ tags: [decisão, segurança, backend, apps-script]
 
 # Código de acesso protege o backend
 
-**Status:** ✅ Decidido · **PR:** #5 (`claude/auth-token`, sai do PR #1)
+**Status:** ✅ Decidido · **PR:** #5, mesclado em 24/08 · ⚠️ **ainda não ativo em produção**
+(falta criar `APP_TOKEN`)
 
 ---
 
@@ -82,8 +83,12 @@ exigiu marcação nova em 4 arquivos. Trocar por um modal é melhoria cosmética
 
 ## Pendente
 
-- Testar contra o Google de verdade, na ordem do `apps-script/README.md`.
+- **Ativar:** implantar o `.gs` e criar `APP_TOKEN` nas Propriedades do script. Mesclar em `main`
+  publicou o front-end, mas **não implanta Apps Script** — até esse passo, o app pede o código e
+  aceita qualquer coisa, e a planilha continua aberta a quem tiver a URL.
 - Confirmar no iPhone que a caixa aparece e que o app segue normal depois.
+- **Combinar o código com a equipe antes de ativar.** A caixa foi ao ar em 24/08 sem ninguém
+  saber o que digitar; cancelar funciona, mas gera dúvida à toa.
 - **Rate limit continua ausente.** O código protege o perímetro, mas quem o tiver chama
   `ia/perguntar` à vontade — se vazar, a chave da Anthropic volta a ficar exposta. Um teto
   diário por aparelho é o próximo passo.
