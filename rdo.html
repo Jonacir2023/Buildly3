@@ -1733,6 +1733,7 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
       </div>
       <div class="btn-stack">
         <button class="btn btn-primary" onclick="backupAutomatico()">💾 Fazer Backup Agora</button>
+        <button class="btn btn-primary" onclick="sincronizarComOutrosAparelhos(true)">🔄 Sincronizar com os outros aparelhos</button>
         <button class="btn btn-primary" onclick="backupNuvem(true)">☁️ Backup na Nuvem (Drive)</button>
         <button class="btn btn-secondary" onclick="if(confirm('Substituir os dados atuais pelo último backup salvo na nuvem?')) restaurarNuvem(false)">☁️ Restaurar da Nuvem</button>
         <div id="infoBackupNuvem" style="font-size:11px;color:var(--ink-soft);margin-top:6px"></div>
@@ -4378,8 +4379,12 @@ function salvarDiarioDia(notificar) {
     (currentDay.atividadesParalisadas || []).length > 0 ||
     (currentDay.fotos || []).length > 0;
   if (temDado) {
+    // Carimbo de hora e origem: é por ele que a mescla decide quem vence,
+    // sem sobrescrever o trabalho de ninguém às cegas.
+    carimbar(currentDay);
     history[chaveDiario(currentDay.data, currentDay.apontador)] = JSON.parse(JSON.stringify(currentDay));
     saveHistory();
+    enviarParaNuvemComDebito();
   } else if (history[chaveDiario(currentDay.data, currentDay.apontador)]) {
     delete history[chaveDiario(currentDay.data, currentDay.apontador)];
     saveHistory();
@@ -7099,11 +7104,191 @@ function backupAutomatico() {
 }
 
 // Backup manual — gera download do arquivo .json
-async function backupNuvem(manual) {
+// ============================================================
+// SINCRONIZAÇÃO ENTRE APARELHOS
+//
+// O app era 100% local: o que um apontador lançava no celular dele não chegava
+// ao celular do outro. Os dois precisam enxergar os mesmos lançamentos, sem que
+// um apague o trabalho do outro.
+//
+// A política é: nunca sobrescrever o local sem critério, e resolver por carimbo
+// de hora.
+//   Cadastro — entra o que é novo por id; nada é apagado. Baixa e retorno
+//              viajam à parte, vencendo o statusEm mais recente.
+//   Diários  — regra do multi-RDO: chave nova entra; chave existente, vence o
+//              atualizadoEm mais recente.
+//   Seleções do dia — só entram junto de um diário que é novo aqui, e nunca
+//              por cima de uma chave que já existe localmente.
+// ============================================================
+
+const SYNC_INTERVALO_MS = 3 * 60 * 1000;
+const APARELHO_ID_KEY = 'diario_obras_aparelho_id';
+let _syncTimer = null;
+let _envioTimer = null;
+let _mesclando = false;   // trava reentrância: mesclar chama saveState/saveHistory
+
+function aparelhoId() {
+  try {
+    let id = localStorage.getItem(APARELHO_ID_KEY);
+    if (!id) {
+      id = 'ap-' + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem(APARELHO_ID_KEY, id);
+    }
+    return id;
+  } catch (e) { return 'ap-desconhecido'; }
+}
+
+// Carimbo de origem e hora — é o que permite resolver conflito sem perder
+// trabalho de ninguém.
+function carimbar(obj) {
+  if (!obj) return obj;
+  obj.atualizadoEm = new Date().toISOString();
+  obj.atualizadoPor = aparelhoId();
+  return obj;
+}
+
+// Compara dois diários ignorando os carimbos: um RDO idêntico vindo de outro
+// aparelho não é conflito e não deve disparar gravação nem aviso.
+function mesmoConteudoDiario(a, b) {
+  if (!a || !b) return false;
+  const limpo = d => {
+    const c = JSON.parse(JSON.stringify(d));
+    delete c.atualizadoEm; delete c.atualizadoPor;
+    return JSON.stringify(c);
+  };
+  try { return limpo(a) === limpo(b); } catch (e) { return false; }
+}
+
+// Regra do multi-RDO aplicada à mescla: chave inexistente entra; chave
+// existente, vence o atualizadoEm mais recente.
+function aplicarRegraRdo(chave, remoto) {
+  const local = history[chave];
+  if (!local) { history[chave] = remoto; return 'novo'; }
+  if (mesmoConteudoDiario(local, remoto)) return 'igual';
+  const tLocal = String(local.atualizadoEm || '');
+  const tRemoto = String(remoto.atualizadoEm || '');
+  if (tRemoto > tLocal) { history[chave] = remoto; return 'atualizado'; }
+  return 'mantido';
+}
+
+// Baixa e retorno viajam entre aparelhos; vence sempre o statusEm mais recente.
+// Sem isto, um aparelho que ainda não soube da baixa a desfaria ao sincronizar.
+function mesclarStatusCadastro(listaLocal, listaRemota) {
+  const porId = {};
+  (listaRemota || []).forEach(r => { if (r && r.id) porId[r.id] = r; });
+  (listaLocal || []).forEach(l => {
+    const r = porId[l.id];
+    if (!r) return;
+    if (String(r.statusEm || '') > String(l.statusEm || '')) {
+      l.inativo = !!r.inativo;
+      l.inativoEm = r.inativoEm || '';
+      l.statusEm = r.statusEm;
+    }
+  });
+}
+
+// Acrescenta o que é novo por id. Nunca remove — remover aqui apagaria o
+// cadastro que o outro aparelho ainda não enviou.
+function mesclarListaPorId(listaLocal, listaRemota) {
+  const existentes = new Set((listaLocal || []).map(i => i && i.id));
+  let novos = 0;
+  (listaRemota || []).forEach(r => {
+    if (r && r.id && !existentes.has(r.id)) { listaLocal.push(r); novos++; }
+  });
+  mesclarStatusCadastro(listaLocal, listaRemota);
+  return novos;
+}
+
+function mesclarDaNuvem(dados) {
+  if (!dados) return { novos: 0, atualizados: 0 };
+  _mesclando = true;
+  let novos = 0, atualizados = 0;
+  try {
+    // ---- Cadastro: só acrescenta ----
+    const st = dados.state || {};
+    if (st.atividades)    mesclarListaPorId(state.atividades, st.atividades);
+    if (st.equipamentos)  mesclarListaPorId(state.equipamentos, st.equipamentos);
+    if (st.veiculosFrota) { state.veiculosFrota = state.veiculosFrota || []; mesclarListaPorId(state.veiculosFrota, st.veiculosFrota); }
+    if (st.seguranca)     mesclarListaPorId(state.seguranca, st.seguranca);
+    if (st.meio_ambiente) mesclarListaPorId(state.meio_ambiente, st.meio_ambiente);
+    if (st.colaboradores && st.colaboradores.categorias) {
+      const cats = state.colaboradores.categorias;
+      mesclarListaPorId(cats, st.colaboradores.categorias);
+      st.colaboradores.categorias.forEach(rCat => {
+        const lCat = cats.find(c => c.id === rCat.id);
+        if (lCat) { lCat.itens = lCat.itens || []; mesclarListaPorId(lCat.itens, rCat.itens || []); }
+      });
+    }
+
+    // ---- Diários: regra do multi-RDO ----
+    const chavesNovas = [];
+    Object.keys(dados.history || {}).forEach(chave => {
+      const r = aplicarRegraRdo(chave, dados.history[chave]);
+      if (r === 'novo') { novos++; chavesNovas.push(chave); }
+      else if (r === 'atualizado') atualizados++;
+    });
+
+    // ---- Seleções do dia: só com diário novo, e nunca por cima do local ----
+    if (dados.chavesDia) {
+      const datasNovas = new Set(chavesNovas.map(dataDaChave));
+      Object.keys(dados.chavesDia).forEach(k => {
+        const m = k.match(/^(?:efetivoDia_|equipDia_|vlDia_|ativDia_)(.+)$/);
+        if (!m || !datasNovas.has(m[1])) return;
+        if (localStorage.getItem(k) !== null) return;   // já existe aqui: não toca
+        try { localStorage.setItem(k, dados.chavesDia[k]); } catch (e) {}
+      });
+    }
+
+    saveState();
+    if (novos || atualizados) saveHistory();
+  } finally {
+    _mesclando = false;
+  }
+  return { novos, atualizados };
+}
+
+// Envio: sobe o retrato completo, com débito para não disparar a cada tecla.
+function enviarParaNuvemComDebito() {
+  if (_mesclando || !APPS_SCRIPT_URL_DIARIO) return;
+  clearTimeout(_envioTimer);
+  _envioTimer = setTimeout(() => { backupNuvem(false, true); }, 4000);
+}
+
+async function sincronizarComOutrosAparelhos(manual) {
+  if (!APPS_SCRIPT_URL_DIARIO) { if (manual) toast('❌ URL do Apps Script não configurada'); return; }
+  try {
+    if (manual) toast('🔄 Sincronizando...');
+    await backupNuvem(false, true);          // manda o que é daqui antes de buscar
+    const obra = state.obra.nome || 'Obra';
+    const resp = await fetch(`${APPS_SCRIPT_URL_DIARIO}?path=backup&action=buscar-ultimo&obra=${encodeURIComponent(obra)}`);
+    const json = await resp.json().catch(() => null);
+    if (!json || !json.ok || !json.conteudo) { if (manual) toast('Nada novo na nuvem'); return; }
+    const r = mesclarDaNuvem(JSON.parse(json.conteudo));
+    if (r.novos || r.atualizados) {
+      initCurrentDay((currentDay && currentDay.data) || todayISO());
+      if (typeof renderCalendario === 'function') renderCalendario();
+      toast(`🔄 ${r.novos} novo(s), ${r.atualizados} atualizado(s)`);
+    } else if (manual) {
+      toast('✅ Tudo já estava em dia');
+    }
+  } catch (err) {
+    console.error('Sincronização falhou:', err);
+    if (manual) toast('❌ Sincronização falhou: ' + (err.message || 'erro'));
+  }
+}
+
+function iniciarSincronizacaoPeriodica() {
+  clearInterval(_syncTimer);
+  _syncTimer = setInterval(() => sincronizarComOutrosAparelhos(false), SYNC_INTERVALO_MS);
+}
+
+async function backupNuvem(manual, forcar) {
   if (!APPS_SCRIPT_URL_DIARIO) { if (manual) toast('❌ URL do Apps Script não configurada'); return; }
   const hoje = todayISO();
   const ultimo = localStorage.getItem('ultimoBackupNuvem');
-  if (!manual && ultimo === hoje) return; // automático: no máximo 1x por dia
+  // O espelho diário continua 1x/dia; a sincronização entre aparelhos usa
+  // forcar=true, senão o trabalho do dia só chegaria ao outro celular amanhã.
+  if (!manual && !forcar && ultimo === hoje) return;
   try {
     // Snapshot completo: estado, histórico e todas as chaves diárias (efetivo, equip, VL, atividades)
     const chavesDia = {};
@@ -7306,6 +7491,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Autosave local a cada 10 segundos
   setInterval(() => salvarDiarioDia(false), 10000);
+
+  // Busca o que os outros aparelhos lançaram, de 3 em 3 minutos.
+  iniciarSincronizacaoPeriodica();
 });
 </script>
 </body>
