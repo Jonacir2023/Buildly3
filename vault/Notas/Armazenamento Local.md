@@ -30,6 +30,39 @@ pergunta — ver [[Notas/Contrato do Backend]].
 
 ---
 
+## Armadilha maior: todos os apps do usuário dividem o mesmo `localStorage`
+
+Descoberto em 26/08, e é a explicação de quase toda "mistura" já percebida.
+
+`localStorage` é isolado por **origem** (`https://jonacir2023.github.io`), **não por pasta**.
+E o usuário publica vários apps sob a mesma conta do GitHub Pages:
+
+| Endereço | De onde vem |
+|---|---|
+| `/buildly2/` | o app que a equipe usa hoje |
+| `/Buildly3/` | este repositório, quando for publicado |
+| `/diario-obras/` | diário de obras de outro repositório |
+| `/pauta/`, `/gestao-tarefas/` | idem |
+
+Todos usam **as mesmas chaves**: `diario_obras_v4_state` e
+`diario_obras_v4_history_<obra>`. Origem igual + chave igual = **um único pote compartilhado**.
+
+Consequência prática: uma obra lançada em `/diario-obras/` aparece dentro do RDO do BUILDLy no
+mesmo celular. Não é dado que atravessou repositório — os repositórios são separados e o código
+não conversa. É o navegador servindo o mesmo armazenamento para os dois endereços.
+
+O `buildly-completo.html` já tem uma tela para "apagar o RDO de uma obra errada deste
+navegador" — ela existe justamente porque isso já aconteceu antes.
+
+**Resolvido em 26/08:** o BUILDLy passou a ter espaço próprio. Um bloco no topo de cada HTML
+troca `window.localStorage` por uma versão que prefixa tudo com `buildly3::`, e que enxerga só o
+próprio espaço — inclusive em `length`, `key(i)` e `clear()`. Sem ponte e sem importação: o
+BUILDLy não lê nem apaga nada de outro app. Ver
+[[Decisões/2026-08-26 Espaço próprio de armazenamento]].
+
+Ao inspecionar o `localStorage` pelo navegador, as chaves aparecem como
+`buildly3::diario_obras_v4_history_<obra>`. Dentro do código, nada mudou.
+
 ## Armadilha: a chave do RDO carrega o nome da obra
 
 ```js

@@ -20,7 +20,8 @@ com Google Sheets + Apps Script como backend.
 
 | Item | Valor |
 |---|---|
-| App | https://jonacir2023.github.io/Buildly3/buildly-completo.html |
+| App que a equipe usa hoje | https://jonacir2023.github.io/buildly2/buildly-completo.html — **outro repositório**, código antigo |
+| Este repositório (Buildly3) | **não publicado** — GitHub Pages nunca foi ligado |
 | Repositório | `Jonacir2023/Buildly3`, branch `main` |
 | Pasta local (Mac) | `~/Buildly3` |
 | Planilha | "Buildly3" — `19SDuzU_CLzDRfbNZWJZQzchLDCeQYHgiSC_FxDSdhOw` |
@@ -139,6 +140,19 @@ Nada foi testado contra o Google nem em celular real — o ambiente do Claude n�
 ---
 
 ## Fila de desenvolvimento
+
+### Bloqueando tudo: o Buildly3 não está publicado
+
+- [ ] **Decidir qual app é o oficial.** Descoberto em 26/08: o GitHub Pages **nunca foi ligado**
+      neste repositório. Tudo que foi feito de 21 a 26/08 está em `main` e **em nenhum celular**.
+      A equipe usa `jonacir2023.github.io/buildly2/`, que é outro repositório com o código
+      anterior. Ver [[Registro/2026-08-26]].
+- [ ] **Se for publicar o Buildly3:** Settings → Pages → Deploy from a branch → `main` / `root`.
+      **Atenção antes:** os dois endereços moram na mesma origem (`jonacir2023.github.io`), então
+      compartilham o mesmo `localStorage`. Os dados da equipe viajam sozinhos — mas a migração do
+      histórico (`data` → `data#apontador`) é **porta de mão única**: depois de abrir o Buildly3,
+      o buildly2 não enxerga mais os RDOs, porque procura por `history[data]`. Nada se perde, mas
+      não dá para ir e voltar entre os dois.
 
 ### Bloqueando tudo: implantar o Apps Script
 
