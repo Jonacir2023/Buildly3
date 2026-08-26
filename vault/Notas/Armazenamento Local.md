@@ -18,7 +18,7 @@ problemas.
 | Pauta | `pauta_*` (`pauta_assuntos`, …) | Sim |
 | Check-in | `chk_*` (`chk_assuntos`, `chk_removidos`) | Sim |
 | Custos | `custo_*` (`custo_notasfiscais`, …) | **Não** (endpoint existe, front-end não chama) |
-| RDO | `diario_obras_v4_state`, `diario_obras_v4_history_<obra>` | Sim |
+| RDO | `diario_obras_v4_state`, `diario_obras_v4_history_<obra>`, `diario_obras_aparelho_id` | Sim |
 | Obra (compartilhado) | `b3_obra` | — |
 | Medições | `med_contratos` | **Não** |
 | Documentos | `doc_arquivos`, `doc_notas_manuais` | **Não** |
@@ -44,6 +44,16 @@ qualquer jeito (é ela a fonte de verdade). Se acontecer, restaure pelo backup n
 volte o nome exato da obra.
 
 Há também as chaves legadas `diario_obras_v3_state` / `_history`, lidas só para migração.
+
+## Dentro do histórico, a chave é `data#apontador`
+
+Desde 25/08 o `history` não é indexado pela data, e sim por `2026-08-24#renan-de-souza` — um RDO
+por apontador no mesmo dia. `migrarHistoricoParaMultiRdo()` converte o formato antigo lendo o
+`apontador` de dentro de cada diário, roda ao carregar **e** nos três caminhos de restauração de
+backup, e é idempotente. Ver [[Decisões/2026-08-25 Um RDO por apontador no mesmo dia]].
+
+Consequência para quem for ler o `localStorage` na mão: `Object.keys(history)` já não devolve
+datas.
 
 Chaves auxiliares por dia, incluídas no backup: `efetivoDia_`, `equipDia_`, `vlDia_`,
 `ativDia_` (sufixo = data), mais `ultimoBackupNuvem` e `diario_obras_v3_autobackup`.

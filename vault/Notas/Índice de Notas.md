@@ -11,6 +11,8 @@ Conhecimento técnico durável sobre o sistema — o que não muda a cada sessã
 - [[Notas/Arquitetura do App]] — shell, apps nativos vs. iframe, navegação, layout
 - [[Notas/Contrato do Backend]] — endpoints do Apps Script, entrada e saída, upsert, robô de IA
 - [[Notas/Armazenamento Local]] — chaves do `localStorage` e as armadilhas de cada uma
+- [[Notas/RDO — Regras do Módulo]] — o app mais delicado: responsável, locais, chave composta,
+  baixa lógica, sincronização
 
 ## Avaliação
 

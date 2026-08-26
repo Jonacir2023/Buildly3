@@ -18,6 +18,9 @@ escreva uma nova nota que substitua a anterior, marcando a antiga como superada.
 | 21/08 | [[Decisões/2026-08-21 Escaneamento de nota fiscal]] | 🟡 Parcial (OCR em aberto) |
 | 21/08 | [[Decisões/2026-08-21 Robô de IA visível em todas as abas]] | ✅ Decidido |
 | 21/08 | [[Decisões/2026-08-21 Código de acesso ao backend]] | ✅ Decidido |
+| 25/08 | [[Decisões/2026-08-25 Um RDO por apontador no mesmo dia]] | ✅ Decidido |
+| 25/08 | [[Decisões/2026-08-25 Baixa lógica no cadastro do RDO]] | ✅ Decidido |
+| 25/08 | [[Decisões/2026-08-25 Sincronização entre aparelhos]] | 🟡 No ar, falta prova com 2 celulares |
 
 ---
 
