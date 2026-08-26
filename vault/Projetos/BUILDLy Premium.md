@@ -39,6 +39,9 @@ Manutenção. Ver [[Notas/Arquitetura do App]].
 - **Nunca perder informação já lançada.** Ver [[Notas/Regras Operacionais Críticas]].
 - O usuário não faz push. Entrega é `.zip` com scripts Python numerados (idempotentes) que
   editam os HTML por trechos exatos, mais `LEIA-ME.txt` com um comando de uma linha.
+- **Ferramenta de apoio, só duas: este cofre Obsidian e o `graphify`.** Nada de conectores
+  (Notion, Drive, Slack e afins), mesmo quando aparecerem disponíveis na sessão — o projeto é
+  fechado em si e a memória dele mora aqui.
 
 ---
 
