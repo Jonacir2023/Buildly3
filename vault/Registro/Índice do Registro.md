@@ -13,7 +13,7 @@ o git não guarda.
 
 | Dia | Alterações |
 |---|---|
-| [[Registro/2026-08-26]] | 14 |
+| [[Registro/2026-08-26]] | 17 |
 | [[Registro/2026-08-25]] | 7 |
 | [[Registro/2026-08-24]] | 9 |
 | [[Registro/2026-08-21]] | 6 |
