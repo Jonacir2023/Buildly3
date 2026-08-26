@@ -44,6 +44,22 @@ Manutenção. Ver [[Notas/Arquitetura do App]].
 
 ## Histórico
 
+### 26/08/2026 — A lixeira do cadastro de colaboradores não removia ninguém
+
+Primeira regressão vinda da leva de 25/08, relatada pelo usuário no mesmo dia em que o código
+estava no ar. Quando o Cadastro passou a dar baixa em vez de apagar, todas as listas ganharam o
+filtro de vigência — menos a de colaboradores. O 🗑️ dava a baixa, salvava, avisava "Removido" e
+redesenhava a linha igual.
+
+Corrigido em duas frentes, porque eram dois caminhos para a mesma sensação: a lista passou pelo
+filtro (e ganhou o bloco de removidos, com restaurar), e a baixa passou a desmarcar o item do dia
+aberto — sem isso, quem estava marcado como presente hoje continuava na tela por causa da regra
+do `usado`. Ver [[Decisões/2026-08-25 Baixa lógica no cadastro do RDO]].
+
+A lição vale além do RDO e virou regra: **ação sem efeito visível é indistinguível de botão
+quebrado.** Quando o efeito é correto mas invisível naquele contexto — dar baixa enquanto se
+edita um dia passado —, o app tem que dizer o porquê.
+
 ### 25/08/2026 — RDO reescrito para dois apontadores (8 correções)
 
 A maior mudança desde a criação do cofre. Oito correções pedidas para o RDO, todas em `main`

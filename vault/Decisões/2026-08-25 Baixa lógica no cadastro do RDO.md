@@ -59,6 +59,27 @@ Três consequências que valem por si:
 (placa, número) e o reativa, **mantendo o mesmo id**. Cadastrar de novo o Fusca não cria um
 segundo Fusca — e os RDOs antigos continuam apontando certo.
 
+## Duas condições, não uma (corrigido em 26/08)
+
+A baixa só funciona do ponto de vista de quem usa se **as duas** valerem na lista:
+
+1. a lista passa por `vigentesNoDia` / `categoriasVigentes`;
+2. a baixa **desmarca o item do dia aberto** (`desmarcarDoDia`) — senão a própria regra do
+   `usado` mantém na tela o item que está marcado como presente/utilizado hoje.
+
+A lista de colaboradores tinha só a segunda faltando e nem a primeira: ficou lendo
+`state.colaboradores.categorias` cru, e o 🗑️ não removia ninguém da tela. Corrigido, com as
+duas condições valendo agora em colaborador, categoria, equipamento, veículo e atividade.
+
+Editando um **dia passado**, o item continua listado mesmo assim — porque existia naquele dia.
+Aí o app avisa (`toastBaixa`) em vez de deixar parecer falha.
+
+## Exceção proposital: Segurança e Meio Ambiente
+
+Esses dois seguem com exclusão de verdade. O evento lançado no dia copia a descrição do tipo
+(`ev.tipo = tipoObj.desc`), então apagar o cadastro não altera RDO nenhum — a baixa ali não
+protegeria nada.
+
 ## O usuário enxerga o que saiu
 
 Cada lista de cadastro ganhou um bloco recolhido **"🗑️ Removidos (N)"** com botão de restaurar.

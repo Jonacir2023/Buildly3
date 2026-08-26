@@ -50,6 +50,20 @@ Ver [[Decisões/2026-08-25 Baixa lógica no cadastro do RDO]]. Toda lista de cad
 `itemVigenteNoDia(item, dia, usado)` — o que existe hoje não é o que existia no dia do RDO que
 está aberto.
 
+> Armadilha, e ela já aconteceu: **remoção que não é visível parece botão quebrado.** A lista de
+> colaboradores foi a única que não recebeu o filtro de vigência — o 🗑️ dava a baixa e a linha
+> continuava na tela. Duas condições precisam valer juntas em toda lista do Cadastro:
+>
+> 1. a lista passa por `vigentesNoDia` / `categoriasVigentes`;
+> 2. a baixa **desmarca o item do dia aberto** (`desmarcarDoDia`), senão a regra "usado no dia
+>    aparece sempre" o mantém na tela.
+>
+> E quando o dia aberto é passado, o item fica mesmo — aí o certo é o app dizer isso
+> (`toastBaixa`), não deixar parecer falha.
+
+Segurança e Meio Ambiente são a exceção proposital: o evento do dia copia a descrição do tipo
+(`ev.tipo`), então apagar o cadastro não mexe em RDO nenhum, e ali a exclusão é de verdade.
+
 ## Sincronização a cada 3 minutos
 
 Ver [[Decisões/2026-08-25 Sincronização entre aparelhos]].

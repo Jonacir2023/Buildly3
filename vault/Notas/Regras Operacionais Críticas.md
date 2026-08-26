@@ -47,52 +47,57 @@ preferências de estilo.
 8. **Nunca gravar documento contratual sem responsável** — nem no salvamento automático. RDO
    anônimo não serve como documento, e o salvamento automático era justamente o que os criava.
 
-9. **Nunca limpar uma aba da planilha que já tem dados.** Um `clearContents()` incondicional em
-   `salvarDiario()` já apagou histórico inteiro de RDO em produção. Cabeçalho só se cria quando
-   a aba está genuinamente vazia (`getLastRow() === 0`).
+9. **Toda ação do usuário precisa de efeito visível.** Baixa lógica sem filtro na tela é
+   indistinguível de botão quebrado: a lista de colaboradores ficou meses assim. Se o efeito é
+   correto mas invisível naquele contexto (dar baixa enquanto se edita um dia passado), o app
+   diz o porquê — não fica calado.
+
+10. **Nunca limpar uma aba da planilha que já tem dados.** Um `clearContents()` incondicional em
+    `salvarDiario()` já apagou histórico inteiro de RDO em produção. Cabeçalho só se cria quando
+    a aba está genuinamente vazia (`getLastRow() === 0`).
 
 ---
 
 ## Publicação e teste
 
-10. **Integrações não funcionam em arquivo local.** Abrir o `.html` direto (`file://`) bloqueia
+11. **Integrações não funcionam em arquivo local.** Abrir o `.html` direto (`file://`) bloqueia
     POST — planilha, fotos e backup só funcionam no endereço publicado (GitHub Pages).
 
-11. **Atualizar o Apps Script exige nova implantação.** Colar o código e salvar não põe nada no
+12. **Atualizar o Apps Script exige nova implantação.** Colar o código e salvar não põe nada no
     ar: Implantar → Gerenciar implantações → editar (lápis) → Nova versão → Implantar. Sem esse
     passo final, o `/exec` continua servindo a versão anterior.
 
-12. **Scripts de entrega precisam ser idempotentes.** As mudanças chegam ao usuário como scripts
+13. **Scripts de entrega precisam ser idempotentes.** As mudanças chegam ao usuário como scripts
     Python que editam os HTML por trechos exatos. Rodar duas vezes não pode duplicar a alteração.
 
 ---
 
 ## Código
 
-13. **O backend Apps Script não é versionado por git.** O que roda é o que está colado no projeto
+14. **O backend Apps Script não é versionado por git.** O que roda é o que está colado no projeto
     Google. Se for apagado, git não recupera — só a Lixeira do Drive (~30 dias). Ver
     [[Decisões/2026-08-21 Backend recuperado da Lixeira]].
 
-14. **Não presumir simetria entre front-end e backend.** Existem `fetch()` sem endpoint
+15. **Não presumir simetria entre front-end e backend.** Existem `fetch()` sem endpoint
     correspondente (`foto&action=base64`) e endpoints que ninguém chama (`custos/salvar`).
     Reconstruir backend a partir do front-end perde tudo que nenhum `fetch()` exercita.
 
-15. **Toda escrita no backend é upsert.** A sincronização automática de 2 em 2 minutos reenvia
+16. **Toda escrita no backend é upsert.** A sincronização automática de 2 em 2 minutos reenvia
     os mesmos registros; sem upsert, cada ciclo duplica linha.
 
-16. **Elemento que precisa aparecer em toda aba tem que ser flutuante.** As 10 telas fora da
+17. **Elemento que precisa aparecer em toda aba tem que ser flutuante.** As 10 telas fora da
     Home têm cabeçalho próprio e não reservam espaço para o cabeçalho do shell. Ver
     [[Decisões/2026-08-21 Robô de IA visível em todas as abas]].
 
-17. **Gravação que pode conter imagem precisa de `try/catch`.** Cota de `localStorage` estoura
+18. **Gravação que pode conter imagem precisa de `try/catch`.** Cota de `localStorage` estoura
     sem aviso e o registro se perde em silêncio. Ver [[Notas/Armazenamento Local]].
 
-18. **Página estática em repositório público não guarda segredo nenhum.** Qualquer valor
+19. **Página estática em repositório público não guarda segredo nenhum.** Qualquer valor
     embutido no HTML é público por definição — inclusive a URL `/exec`. Todo segredo vem de
     fora: das Propriedades do script (servidor) ou digitado pelo usuário e guardado no aparelho.
     Ver [[Decisões/2026-08-21 Código de acesso ao backend]].
 
-19. **Toda chamada nova ao backend precisa levar o código de acesso.** O shim sobre `fetch()`
+20. **Toda chamada nova ao backend precisa levar o código de acesso.** O shim sobre `fetch()`
     cobre isso sozinho nos arquivos onde já está (`pauta`, `Check-in`, `rdo`,
     `buildly-completo`) — mas `custos.html` ainda não o tem, porque hoje não chama o backend.
     Ao ligar `custos/salvar`, leve o shim junto.
