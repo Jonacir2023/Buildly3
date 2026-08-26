@@ -10,7 +10,36 @@ esta já descobriu.** Ele só cumpre isso se for atualizado junto com o trabalho
 
 ---
 
-## A regra
+## A regra base: nenhuma alteração sem registro
+
+**Toda e qualquer mudança do BUILDLy vira nota.** Não é filtrada por importância — commit feito,
+entrada no [[Registro/Índice do Registro]].
+
+Isso não depende de memória de ninguém. O bloco de alterações de cada nota diária é gerado do
+próprio git:
+
+```bash
+python3 scripts/registro_obsidian.py
+```
+
+Uma nota por dia, em `Registro/AAAA-MM-DD.md`, com cada commit, cada arquivo tocado e as linhas
+somadas e removidas. Idempotente — pode rodar sempre.
+
+O que o git **não** sabe é o porquê: o que motivou a mudança, o que foi testado, o que ficou
+pendente. Isso se escreve à mão, acima do marcador `<!-- registro:auto -->`, e o script preserva.
+
+Se um dia o Registro divergir do git, o git está certo — é só rodar o script de novo.
+
+Uma consequência a saber: o commit que grava o próprio Registro fica de fora dele — não dá para
+registrar um commit antes de ele existir. A execução seguinte o inclui. Por isso a última linha
+do Registro costuma estar um commit atrás, e isso não é erro.
+
+---
+
+## A segunda regra: as notas de conhecimento acompanham
+
+O Registro conta *o que aconteceu, quando*. As notas de `Notas/`, `Decisões/` e
+`Projetos/` contam *como o sistema é e por quê* — e essas precisam ser mantidas à mão.
 
 Toda sessão que fizer trabalho relevante no Buildly3 atualiza as notas afetadas **no mesmo
 trabalho, sem esperar ser pedido**. A regra está registrada no `CLAUDE.md` da raiz do
@@ -26,6 +55,7 @@ backend, armadilha nova descoberta, teste do usuário que confirma ou desmente a
 
 | Aconteceu | Atualize |
 |---|---|
+| **Qualquer commit** | `python3 scripts/registro_obsidian.py` + o porquê à mão |
 | PR aberto / mesclado / fechado | "Histórico" e "Fila de desenvolvimento" em [[Projetos/BUILDLy Premium]] |
 | Decisão tomada | Nota nova em `Decisões/` + link no histórico do projeto |
 | Endpoint mudou | [[Notas/Contrato do Backend]] |
@@ -62,4 +92,5 @@ backend, armadilha nova descoberta, teste do usuário que confirma ou desmente a
 ## Relacionado
 
 - [[Início]]
+- [[Registro/Índice do Registro]]
 - [[Projetos/BUILDLy Premium]]

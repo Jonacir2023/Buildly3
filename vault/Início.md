@@ -25,6 +25,7 @@ por que as coisas são como são, o que já foi decidido, e o que ainda está em
 
 ## Índices
 
+- [[Registro/Índice do Registro]] — tudo que já mudou, dia a dia
 - [[Projetos/Índice de Projetos]]
 - [[Notas/Índice de Notas]]
 - [[Decisões/Índice de Decisões]]
@@ -34,9 +35,13 @@ por que as coisas são como são, o que já foi decidido, e o que ainda está em
 
 ## Como este cofre se mantém
 
-Não há automação — quem mantém é o Claude, por convenção registrada no `CLAUDE.md` da raiz
-do repositório. Toda sessão que fizer trabalho relevante aqui (PR aberto ou mesclado, decisão
-tomada, mudança no contrato do backend) atualiza as notas afetadas no mesmo trabalho, sem
-esperar ser pedido. Ver [[Notas/Como manter este cofre]].
+**Nenhuma alteração do BUILDLy fica sem nota.** O que mudou e quando é gerado do próprio git por
+`scripts/registro_obsidian.py`, que escreve uma nota por dia em [[Registro/Índice do Registro]] —
+isso não depende de ninguém lembrar. O porquê de cada mudança é escrito à mão na mesma nota, e o
+script preserva.
+
+As notas de conhecimento (`Notas/`, `Decisões/`, `Projetos/`) são mantidas pelo Claude, por
+convenção registrada no `CLAUDE.md` da raiz: toda sessão atualiza o que tocou, no mesmo
+trabalho, sem esperar ser pedido. Ver [[Notas/Como manter este cofre]].
 
 #índice

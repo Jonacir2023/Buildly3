@@ -21,6 +21,27 @@ Essencial antes de qualquer alteração:
 | `vault/Notas/Arquitetura do App.md` | Shell + 9 apps (nativos vs. iframe) |
 | `vault/Notas/Contrato do Backend.md` | Endpoints do Apps Script, entrada e saída |
 | `vault/Notas/Armazenamento Local.md` | Chaves do `localStorage` e suas armadilhas |
+| `vault/Registro/Índice do Registro.md` | Tudo que já mudou, dia a dia, direto do git |
+
+## Registre TODA alteração — obrigatório, sem exceção
+
+Nenhuma mudança do BUILDLy pode ficar sem nota. Antes de terminar qualquer trabalho que produza
+commit, rode:
+
+```bash
+python3 scripts/registro_obsidian.py
+```
+
+Ele lê o git e escreve/atualiza `vault/Registro/AAAA-MM-DD.md` — uma nota por dia, com todo
+commit, todo arquivo tocado e as linhas somadas e removidas. É idempotente: rodar de novo não
+duplica nada.
+
+O script cobre o **o quê**. O **porquê** é sua parte: escreva, acima do bloco
+`<!-- registro:auto -->`, o que motivou a mudança, o que foi testado e o que ficou pendente.
+O script nunca toca nesse texto.
+
+Commit o resultado junto com a alteração, no mesmo PR. Um commit sem entrada no Registro é
+trabalho pela metade.
 
 ## Mantenha o cofre atualizado — sem esperar ser pedido
 
