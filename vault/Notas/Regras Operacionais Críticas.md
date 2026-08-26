@@ -60,44 +60,49 @@ preferências de estilo.
 
 ## Publicação e teste
 
-11. **Integrações não funcionam em arquivo local.** Abrir o `.html` direto (`file://`) bloqueia
+11. **Nunca afirmar que algo está publicado sem ter verificado.** Por vários dias eu disse que
+    as mudanças estavam no ar; o GitHub Pages nunca tinha sido ligado neste repositório. A nota
+    do cofre dizia "publicado" e eu a tratei como fato. Deste ambiente não se alcança o
+    `github.io` — quando não dá para checar, a frase certa é "não consigo confirmar daqui".
+
+12. **Integrações não funcionam em arquivo local.** Abrir o `.html` direto (`file://`) bloqueia
     POST — planilha, fotos e backup só funcionam no endereço publicado (GitHub Pages).
 
-12. **Atualizar o Apps Script exige nova implantação.** Colar o código e salvar não põe nada no
+13. **Atualizar o Apps Script exige nova implantação.** Colar o código e salvar não põe nada no
     ar: Implantar → Gerenciar implantações → editar (lápis) → Nova versão → Implantar. Sem esse
     passo final, o `/exec` continua servindo a versão anterior.
 
-13. **Scripts de entrega precisam ser idempotentes.** As mudanças chegam ao usuário como scripts
+14. **Scripts de entrega precisam ser idempotentes.** As mudanças chegam ao usuário como scripts
     Python que editam os HTML por trechos exatos. Rodar duas vezes não pode duplicar a alteração.
 
 ---
 
 ## Código
 
-14. **O backend Apps Script não é versionado por git.** O que roda é o que está colado no projeto
+15. **O backend Apps Script não é versionado por git.** O que roda é o que está colado no projeto
     Google. Se for apagado, git não recupera — só a Lixeira do Drive (~30 dias). Ver
     [[Decisões/2026-08-21 Backend recuperado da Lixeira]].
 
-15. **Não presumir simetria entre front-end e backend.** Existem `fetch()` sem endpoint
+16. **Não presumir simetria entre front-end e backend.** Existem `fetch()` sem endpoint
     correspondente (`foto&action=base64`) e endpoints que ninguém chama (`custos/salvar`).
     Reconstruir backend a partir do front-end perde tudo que nenhum `fetch()` exercita.
 
-16. **Toda escrita no backend é upsert.** A sincronização automática de 2 em 2 minutos reenvia
+17. **Toda escrita no backend é upsert.** A sincronização automática de 2 em 2 minutos reenvia
     os mesmos registros; sem upsert, cada ciclo duplica linha.
 
-17. **Elemento que precisa aparecer em toda aba tem que ser flutuante.** As 10 telas fora da
+18. **Elemento que precisa aparecer em toda aba tem que ser flutuante.** As 10 telas fora da
     Home têm cabeçalho próprio e não reservam espaço para o cabeçalho do shell. Ver
     [[Decisões/2026-08-21 Robô de IA visível em todas as abas]].
 
-18. **Gravação que pode conter imagem precisa de `try/catch`.** Cota de `localStorage` estoura
+19. **Gravação que pode conter imagem precisa de `try/catch`.** Cota de `localStorage` estoura
     sem aviso e o registro se perde em silêncio. Ver [[Notas/Armazenamento Local]].
 
-19. **Página estática em repositório público não guarda segredo nenhum.** Qualquer valor
+20. **Página estática em repositório público não guarda segredo nenhum.** Qualquer valor
     embutido no HTML é público por definição — inclusive a URL `/exec`. Todo segredo vem de
     fora: das Propriedades do script (servidor) ou digitado pelo usuário e guardado no aparelho.
     Ver [[Decisões/2026-08-21 Código de acesso ao backend]].
 
-20. **Toda chamada nova ao backend precisa levar o código de acesso.** O shim sobre `fetch()`
+21. **Toda chamada nova ao backend precisa levar o código de acesso.** O shim sobre `fetch()`
     cobre isso sozinho nos arquivos onde já está (`pauta`, `Check-in`, `rdo`,
     `buildly-completo`) — mas `custos.html` ainda não o tem, porque hoje não chama o backend.
     Ao ligar `custos/salvar`, leve o shim junto.
