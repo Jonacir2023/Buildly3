@@ -2547,6 +2547,29 @@ function reativarSeJaExiste(lista, casa) {
   return achado;
 }
 
+// Ao dar baixa, tira o item do rascunho do dia que está aberto. Sem isto ele
+// continua marcado como usado hoje, e "usado" o mantém na tela — o botão de
+// remover parece não ter feito nada.
+function desmarcarDoDia(prefixo, ids) {
+  const dia = dataAtiva();
+  const sel = S.get(`${prefixo}${dia}`) || {};
+  let tirou = false;
+  (ids || []).forEach(id => { if (sel[id]) { delete sel[id]; tirou = true; } });
+  if (tirou) S.set(`${prefixo}${dia}`, sel);
+  return tirou;
+}
+
+// A baixa vale de hoje em diante. Editando um dia passado, o item continua na
+// tela de propósito — ele existia naquele dia. Sem dizer isso, parece falha.
+function toastBaixa(palavra) {
+  const dia = dataAtiva();
+  if (dia && dia < todayISO()) {
+    toast(`${palavra} a partir de hoje — segue no dia ${formatDateBR(dia)}, que você está editando`);
+  } else {
+    toast(palavra);
+  }
+}
+
 function rotuloBaixa(item) {
   return (item && item.inativo && item.inativoEm)
     ? `removido em ${formatDateBR(item.inativoEm)}`
@@ -5344,7 +5367,10 @@ function renderConfigColab() {
   const dia = dataAtiva();
   const savedEfetivo = S.get(`efetivoDia_${dia}`) || {};
 
-  const categoriasColab = [...state.colaboradores.categorias].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  // Esta lista precisa passar pela vigência como as outras do Cadastro: sem
+  // isso o 🗑️ dá a baixa mas a linha continua na tela, e parece que o botão
+  // não funciona.
+  const categoriasColab = categoriasVigentes(dia, savedEfetivo).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   categoriasColab.forEach(cat => {
     // — bloco da categoria —
     const block = document.createElement('div');
@@ -5441,6 +5467,14 @@ function renderConfigColab() {
       });
     }
 
+    // Quem saiu desta categoria, com botão de restaurar. categoriasVigentes()
+    // devolve cópias, então os removidos vêm da categoria de verdade.
+    const catReal = (state.colaboradores.categorias || []).find(x => x.id === cat.id);
+    if (catReal) {
+      anexarBlocoRemovidos(body, catReal.itens, c => `${c.nome} (${c.mat})`,
+        c => { reativarNoCadastro(c); saveState(); renderConfigColab(); toast('Restaurado'); });
+    }
+
     // botão adicionar colaborador
     const addWrap = document.createElement('div');
     addWrap.style.padding = '8px 12px';
@@ -5455,6 +5489,18 @@ function renderConfigColab() {
     block.appendChild(body);
     cont.appendChild(block);
   });
+
+  // Categoria inteira que saiu. Restaurar traz de volta a categoria e quem
+  // tinha saído junto com ela, na mesma data — que é como ela foi removida.
+  anexarBlocoRemovidos(cont, state.colaboradores.categorias, cat => `📁 ${cat.nome}`,
+    cat => {
+      const em = cat.inativoEm;
+      reativarNoCadastro(cat);
+      (cat.itens || []).forEach(c => { if (c && c.inativo && c.inativoEm === em) reativarNoCadastro(c); });
+      saveState();
+      renderConfigColab();
+      toast('Restaurada');
+    });
 }
 
 function renderConfigEquip() {
@@ -5696,10 +5742,11 @@ function removerCategoria(id) {
     if (cat) {
       baixarDoCadastro(cat);
       (cat.itens || []).forEach(baixarDoCadastro);
+      desmarcarDoDia('efetivoDia_', (cat.itens || []).map(c => c.id));
     }
     saveState();
     renderConfigColab();
-    toast('Removido');
+    toastBaixa('Removida');
   });
 }
 function abrirModalColaborador(catId) {
@@ -5747,9 +5794,10 @@ function removerColaborador(catId, id) {
   confirmar('Remover este colaborador?', () => {
     const cat = state.colaboradores.categorias.find(c => c.id === catId);
     baixarDoCadastro((cat && cat.itens || []).find(c => c.id === id));
+    desmarcarDoDia('efetivoDia_', [id]);
     saveState();
     renderConfigColab();
-    toast('Removido');
+    toastBaixa('Removido');
   });
 }
 
@@ -5863,7 +5911,8 @@ function salvarVeiculoFrota() {
 function removerVeiculoFrota(id) {
   confirmar('Remover este veículo da frota?', () => {
     baixarDoCadastro((state.veiculosFrota || []).find(v => v.id === id));
-    saveState(); renderConfigVL(); toast('Removido');
+    desmarcarDoDia('vlDia_', [id]);
+    saveState(); renderConfigVL(); toastBaixa('Removido');
   });
 }
 
@@ -5946,9 +5995,10 @@ function salvarEquipamento() {
 function removerEquipamento(id) {
   confirmar('Remover este equipamento?', () => {
     baixarDoCadastro(state.equipamentos.find(e => e.id === id));
+    desmarcarDoDia('equipDia_', [id]);
     saveState();
     renderConfigEquip();
-    toast('Removido');
+    toastBaixa('Removido');
   });
 }
 
@@ -6186,7 +6236,7 @@ function removerAtividade(id) {
     S.set(`ativDia_${dia}`, savedAtiv);
     saveState();
     renderConfigAtiv();
-    toast('Removido');
+    toastBaixa('Removida');
   });
 }
 
