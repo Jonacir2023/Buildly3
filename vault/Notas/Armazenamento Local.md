@@ -54,8 +54,14 @@ não conversa. É o navegador servindo o mesmo armazenamento para os dois endere
 O `buildly-completo.html` já tem uma tela para "apagar o RDO de uma obra errada deste
 navegador" — ela existe justamente porque isso já aconteceu antes.
 
-**Enquanto as chaves não forem prefixadas por app, essa mistura é o comportamento esperado, não
-um defeito.**
+**Resolvido em 26/08:** o BUILDLy passou a ter espaço próprio. Um bloco no topo de cada HTML
+troca `window.localStorage` por uma versão que prefixa tudo com `buildly3::`, e que enxerga só o
+próprio espaço — inclusive em `length`, `key(i)` e `clear()`. Sem ponte e sem importação: o
+BUILDLy não lê nem apaga nada de outro app. Ver
+[[Decisões/2026-08-26 Espaço próprio de armazenamento]].
+
+Ao inspecionar o `localStorage` pelo navegador, as chaves aparecem como
+`buildly3::diario_obras_v4_history_<obra>`. Dentro do código, nada mudou.
 
 ## Armadilha: a chave do RDO carrega o nome da obra
 

@@ -1311,6 +1311,62 @@ table.fotos-table tr, table.data-table tr { page-break-inside: avoid; break-insi
 <div class="toast" id="toast">Salvo</div>
 
 <script>
+/* ============================================================
+   ESPAÇO PRÓPRIO DO BUILDLy — BUILDLY_ESPACO_PROPRIO
+
+   Todos os apps do usuário são publicados sob a mesma origem
+   (https://jonacir2023.github.io). O localStorage é isolado por ORIGEM, não
+   por pasta: sem este bloco, o BUILDLy e qualquer outro app publicado na
+   mesma conta gravam no mesmo pote, com as mesmas chaves, e um passa a
+   enxergar a obra do outro.
+
+   Aqui o BUILDLy passa a ter um espaço fechado, prefixado. O app continua
+   usando localStorage como sempre — a tradução é invisível. Nada de fora do
+   prefixo é lido, escrito ou apagado, nem mesmo por um clear().
+
+   Precisa rodar ANTES de qualquer outro script tocar no armazenamento.
+   ============================================================ */
+(function () {
+  var P = 'buildly3::';
+  var real;
+  try { real = window.localStorage; } catch (e) { return; }
+  if (!real || real.__buildly3) return;
+
+  function nossas() {
+    var out = [];
+    for (var i = 0; i < real.length; i++) {
+      var k = real.key(i);
+      if (k && k.indexOf(P) === 0) out.push(k);
+    }
+    return out;
+  }
+
+  var espaco = {
+    __buildly3: true,
+    get length() { return nossas().length; },
+    key: function (i) {
+      var k = nossas()[i];
+      return k === undefined ? null : k.slice(P.length);
+    },
+    getItem: function (k) { return real.getItem(P + k); },
+    setItem: function (k, v) { real.setItem(P + k, v); },
+    removeItem: function (k) { real.removeItem(P + k); },
+    // clear() apaga só o que é do BUILDLy — nunca o armazenamento dos outros
+    // apps da mesma origem.
+    clear: function () { nossas().forEach(function (k) { real.removeItem(k); }); }
+  };
+
+  try {
+    Object.defineProperty(window, 'localStorage', {
+      value: espaco, configurable: true, writable: false
+    });
+  } catch (e) {
+    // Navegador que não deixa redefinir: melhor seguir com o comportamento
+    // antigo do que quebrar o app inteiro.
+  }
+})();
+</script>
+<script>
 // ============================================================
 // UTILS (mesmos padrões do rdo.html)
 // ============================================================
