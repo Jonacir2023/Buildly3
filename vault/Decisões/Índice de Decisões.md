@@ -22,6 +22,7 @@ escreva uma nova nota que substitua a anterior, marcando a antiga como superada.
 | 25/08 | [[Decisões/2026-08-25 Baixa lógica no cadastro do RDO]] | ✅ Decidido |
 | 25/08 | [[Decisões/2026-08-25 Sincronização entre aparelhos]] | 🟡 No ar, falta prova com 2 celulares |
 | 26/08 | [[Decisões/2026-08-26 Espaço próprio de armazenamento]] | ✅ Decidido |
+| 26/08 | [[Decisões/2026-08-26 Isolamento definitivo entre projetos]] | 🟡 Feito no código, falta despublicar o buildly2 |
 
 ---
 

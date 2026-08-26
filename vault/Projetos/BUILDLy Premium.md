@@ -141,6 +141,14 @@ Nada foi testado contra o Google nem em celular real — o ambiente do Claude n�
 
 ## Fila de desenvolvimento
 
+### Mais urgente que tudo: tirar o buildly2 do ar
+
+- [ ] **Despublicar `jonacir2023.github.io/buildly2/`.** Aquele endereço serve um app que aponta
+      para o Apps Script — e portanto para a planilha — de outro projeto. Quem o abrir escreve no
+      diário de obras alheio, de qualquer aparelho. Já aconteceu: alteração de efetivo feita ali
+      apareceu no outro sistema. Não dá para corrigir daqui, é outro repositório. Ver
+      [[Decisões/2026-08-26 Isolamento definitivo entre projetos]].
+
 ### Bloqueando tudo: o Buildly3 não está publicado
 
 - [ ] **Decidir qual app é o oficial.** Descoberto em 26/08: o GitHub Pages **nunca foi ligado**

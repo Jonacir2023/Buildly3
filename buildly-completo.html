@@ -610,7 +610,6 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
       <button class="atab active" onclick="pautaAbaAdmin('membros',this)">👥 Membros</button>
       <button class="atab" onclick="pautaAbaAdmin('setores',this)">🏗️ Setores</button>
       <button class="atab" onclick="pautaAbaAdmin('backup',this)">💾 Backup</button>
-      <button class="atab" onclick="pautaAbaAdmin('sync',this)">☁️ Sync</button>
     </div>
 
     <div class="admin-section active" id="pauta-admin-membros">
@@ -638,25 +637,6 @@ body{max-width:480px;margin:0 auto;padding-bottom:82px;display:flex;flex-directi
       </div>
     </div>
 
-    <div class="admin-section" id="pauta-admin-sync">
-      <div class="sec">
-        <div class="sec-title">🔐 GitHub PAT</div>
-        <div class="frow">
-          <label>Token de Acesso Pessoal</label>
-          <input type="password" id="pauta-sync-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value=""/>
-        </div>
-        <button class="btn btn-primary btn-full" onclick="pautaSalvarTokenSync()">💾 SALVAR TOKEN</button>
-      </div>
-      <div class="sec" style="margin-top:12px">
-        <div class="sec-title">📊 Status de Sincronização</div>
-        <div style="font-size:13px;color:var(--ink-soft);line-height:1.6">
-          <p><strong>Próxima sincronização:</strong> <span id="sync-proximo"></span></p>
-          <p><strong>Última sincronização:</strong> <span id="sync-ultimo">Nunca</span></p>
-          <p><strong>Arquivos:</strong> pauta-dados.json, checkin-dados.json</p>
-          <p><strong>Intervalo:</strong> A cada 2 minutos</p>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -1305,109 +1285,6 @@ function atualizarDataHeader() {
 setInterval(atualizarDataHeader, 30000);
 atualizarDataHeader();
 
-// ═══════════════════════════════════════════════════════════════
-// AUTO-SYNC COM GITHUB
-// ═══════════════════════════════════════════════════════════════
-
-const syncConfig = {
-  get(k) { try { return JSON.parse(localStorage.getItem('sync_' + k)); } catch { return null; } },
-  set(k, v) { localStorage.setItem('sync_' + k, JSON.stringify(v)); }
-};
-
-let githubToken = syncConfig.get('token') || '';
-
-function setSyncToken(token) {
-  githubToken = token.trim();
-  syncConfig.set('token', githubToken);
-}
-
-function syncToGithub() {
-  // DESATIVADO: Buildly e JC (Jonacir2023/JC) devem permanecer repositorios
-  // totalmente independentes, sem nenhum vinculo tecnico entre si. Codigo
-  // mantido apenas como referencia historica, nao reativar sem decisao
-  // explicita do usuario.
-  return;
-  if (!githubToken) return;
-
-  const pautaData = {
-    timestamp: new Date().toISOString(),
-    assuntos: pautaAssuntos || [],
-    membros: pautaMembros || [],
-    setores: pautaSetores || []
-  };
-
-  const checkinData = {
-    timestamp: new Date().toISOString(),
-    assuntos: checkinAssuntos || [],
-    reunioes: checkinReunioes || []
-  };
-
-  // Salvar Pauta
-  fetch('https://api.github.com/repos/Jonacir2023/JC/contents/pauta-dados.json', {
-    method: 'PUT',
-    headers: {
-      'Authorization': 'token ' + githubToken,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      message: 'auto: sync pauta data',
-      content: btoa(JSON.stringify(pautaData, null, 2)),
-      branch: 'main'
-    })
-  }).then(() => {
-    syncConfig.set('ultimo', new Date().toISOString());
-    atualizarStatusSync();
-  }).catch(e => console.log('Pauta sync:', e.message));
-
-  // Salvar Check-in
-  fetch('https://api.github.com/repos/Jonacir2023/JC/contents/checkin-dados.json', {
-    method: 'PUT',
-    headers: {
-      'Authorization': 'token ' + githubToken,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      message: 'auto: sync checkin data',
-      content: btoa(JSON.stringify(checkinData, null, 2)),
-      branch: 'main'
-    })
-  }).catch(e => console.log('Check-in sync:', e.message));
-}
-
-function atualizarStatusSync() {
-  const ultimo = syncConfig.get('ultimo');
-  const ultimoEl = document.getElementById('sync-ultimo');
-  const proximoEl = document.getElementById('sync-proximo');
-
-  if (ultimo) {
-    const data = new Date(ultimo);
-    ultimoEl.textContent = data.toLocaleString('pt-BR');
-  }
-
-  const proximo = new Date(new Date().getTime() + 120000);
-  proximoEl.textContent = proximo.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
-}
-
-function pautaSalvarTokenSync() {
-  const tokenInput = document.getElementById('pauta-sync-token');
-  const token = tokenInput.value;
-
-  if (!token) {
-    pautaNotify('❌ Token vazio', '#b83228');
-    return;
-  }
-
-  setSyncToken(token);
-  pautaNotify('✅ Token salvo com sucesso!', '#2d6a40');
-
-  // Fazer primeira sincronização
-  syncToGithub();
-}
-
-// Auto-sync a cada 2 minutos
-setInterval(() => {
-  if (githubToken) syncToGithub();
-}, 120000);
 
 // ═══════════════════════════════════════════════════════════════
 // PAUTA APP
@@ -1669,15 +1546,6 @@ function pautaAbaAdmin(aba, el) {
   document.getElementById('pauta-admin-' + aba).classList.add('active');
   document.querySelectorAll('#page-pauta .atab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-
-  // Se abrir aba sync, carregar dados
-  if (aba === 'sync') {
-    const tokenInput = document.getElementById('pauta-sync-token');
-    if (tokenInput) {
-      tokenInput.value = githubToken;
-    }
-    atualizarStatusSync();
-  }
 }
 
 function pautaAddMembro() {
