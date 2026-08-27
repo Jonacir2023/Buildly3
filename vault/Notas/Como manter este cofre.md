@@ -56,6 +56,7 @@ backend, armadilha nova descoberta, teste do usuário que confirma ou desmente a
 | Aconteceu | Atualize |
 |---|---|
 | **Qualquer commit** | `python3 scripts/registro_obsidian.py` + o porquê à mão |
+| **Mudança em HTML** | `python3 tests/executar.py` + `scripts/verificar_sintaxe.py` antes de entregar |
 | PR aberto / mesclado / fechado | "Histórico" e "Fila de desenvolvimento" em [[Projetos/BUILDLy Premium]] |
 | Decisão tomada | Nota nova em `Decisões/` + link no histórico do projeto |
 | Endpoint mudou | [[Notas/Contrato do Backend]] |
