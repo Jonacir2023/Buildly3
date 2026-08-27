@@ -23,6 +23,26 @@ Essencial antes de qualquer alteração:
 | `vault/Notas/Armazenamento Local.md` | Chaves do `localStorage` e suas armadilhas |
 | `vault/Registro/Índice do Registro.md` | Tudo que já mudou, dia a dia, direto do git |
 
+## A sessão já começa pronta
+
+`.claude/hooks/session-start.sh` roda no início de toda sessão na web: confere o navegador,
+sobe o app em `$BUILDLY_URL` (porta 8795) e roda os dois verificadores. Não faz nada na máquina
+do usuário.
+
+```bash
+python3 tests/executar.py          # as 7 suítes
+python3 tests/executar.py rdo      # só as do RDO
+python3 scripts/verificar_sintaxe.py
+```
+
+As suítes abrem o app num navegador sem tela e conferem regras que já custaram caro: um RDO por
+apontador por dia, responsável obrigatório, baixa lógica, sincronização sem sobrescrever, a
+lixeira do cadastro, o espaço próprio de armazenamento. **Rode antes de entregar qualquer
+mudança em HTML.**
+
+`verificar_sintaxe.py` é o mais próximo de um linter que faz sentido aqui: o projeto não tem
+build, e um erro de sintaxe só apareceria quando alguém abrisse a página no celular.
+
 ## Prove o isolamento antes de entregar — obrigatório
 
 ```bash
