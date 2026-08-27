@@ -911,7 +911,9 @@ function limparDuplicatasCheckin() {
 // FOTOS DO DIÁRIO — Google Drive
 // ============================================================
 
-var PASTA_RAIZ_FOTOS = 'Diario de Obras - Fotos';
+// Nome próprio: 'Diario de Obras - ...' é genérico e qualquer outro app do
+// mesmo Drive cairia na mesma pasta.
+var PASTA_RAIZ_FOTOS = 'BUILDLy - Fotos';
 
 function salvarFoto(dados) {
   var raiz = obterOuCriarPasta(DriveApp.getRootFolder(), PASTA_RAIZ_FOTOS);
@@ -938,7 +940,7 @@ function obterOuCriarPasta(pai, nome) {
 // BACKUP NA NUVEM — JSON completo do app no Google Drive
 // Mantém apenas os 30 backups mais recentes por obra
 // ============================================================
-var PASTA_RAIZ_BACKUPS = 'Diario de Obras - Backups';
+var PASTA_RAIZ_BACKUPS = 'BUILDLy - Backups';
 
 function salvarBackup(dados) {
   var raiz = obterOuCriarPasta(DriveApp.getRootFolder(), PASTA_RAIZ_BACKUPS);

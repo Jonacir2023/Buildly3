@@ -23,6 +23,20 @@ Essencial antes de qualquer alteração:
 | `vault/Notas/Armazenamento Local.md` | Chaves do `localStorage` e suas armadilhas |
 | `vault/Registro/Índice do Registro.md` | Tudo que já mudou, dia a dia, direto do git |
 
+## Prove o isolamento antes de entregar — obrigatório
+
+```bash
+python3 scripts/verificar_isolamento.py
+```
+
+Falha se o BUILDLy tiver qualquer vínculo com outro projeto: `/exec` que não seja o dele,
+planilha que não seja a dele, endereço ou repositório de outro sistema, pasta de Drive com nome
+genérico, ou app usando `localStorage` sem o espaço próprio.
+
+Isto existe por causa de um incidente real — alteração no efetivo do RDO aparecendo no diário de
+obras de outro projeto, em outro aparelho. Ver
+`vault/Decisões/2026-08-26 Isolamento definitivo entre projetos.md`.
+
 ## Registre TODA alteração — obrigatório, sem exceção
 
 Nenhuma mudança do BUILDLy pode ficar sem nota. Antes de terminar qualquer trabalho que produza
