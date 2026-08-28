@@ -1,69 +1,41 @@
 ---
 criado: 2026-08-27
-tags: [decisão, supabase, dados, migração]
-status: em andamento
+atualizado: 2026-08-28
+tags: [decisão, supabase, descartada]
+status: superada
 ---
 
-# Migração da planilha para o Supabase
+# Migração da planilha para o Supabase — DESCARTADA
 
-**Data:** 27/08/2026 · **Status:** 🟡 Esquema pronto e testado; nada aplicado
-
-Decisão do usuário: levar os dados do Google Sheets para o Supabase, **mantendo as fotos no
-Google Drive**.
+**Status:** ❌ Superada em 28/08. O esquema foi removido deste repositório.
 
 ---
 
-## Não havia o que formatar
+## O que se decidiu em 27/08
 
-O pedido era "formate o Supabase". Fui olhar antes: a organização existe (plano gratuito) e tem
-**zero projetos**. O `/app-supabase/` do repositório é código e migrações que nunca foram
-aplicados a projeto nenhum. Nenhuma ação destrutiva foi necessária.
+Levar os dados da planilha para o Supabase, com um esquema de 11 tabelas espelhando as abas
+(`rdo`, `pauta`, `checkin`, `nota_fiscal`, `item_nf`) mais o cadastro. Escrito, testado num
+PostgreSQL local e mesclado neste repositório.
 
-## Forma do esquema
+## Por que foi descartado
 
-Onze tabelas. As cinco primeiras espelham as abas da planilha; as outras seis são o cadastro,
-que **nunca esteve na planilha** — vive só no `localStorage` de cada aparelho, e é por isso que
-cada celular tem a sua lista e limpar o navegador apaga tudo. **É o maior ganho isolado desta
-migração.**
+No dia seguinte apareceu o **P3** — um projeto Supabase próprio, com modelagem que segue o
+caminho oposto e certo: **não espelhar planilha.** Lá `pessoas` é separado de `contratos`,
+o RDO tem tabelas filhas em vez de listas dentro de uma célula, e regra de negócio mora no
+banco. Espelho de planilha gera tabela sem integridade e retrabalho garantido — o esquema
+daqui tinha exatamente esse defeito.
 
-Decisão de forma, e ela é deliberada: nesta etapa as listas do RDO (atividades do dia, efetivo
-por função, equipamentos usados) continuam como **texto**, como a planilha guarda. Normalizar
-agora obrigaria a reescrever o app no mesmo passo da migração de dados — dois riscos ao mesmo
-tempo. Primeiro o dado chega inteiro e conferível; depois se normaliza o que ganhar algo com
-isso.
+Manter os dois seria a mesma armadilha que já custou caro neste projeto: dois esquemas
+parecidos, em lugares diferentes, para o mesmo dado. Removidos deste repositório:
 
-As regras que o app já tem viraram regra do banco:
+- `supabase/migrations/0001_esquema.sql` e `0002_rls.sql`
+- `supabase/README.md`
+- `scripts/planilha_para_supabase.py`
 
-- `unique (obra_id, data, lower(apontador))` — um RDO por apontador por dia, agora garantido
-  pelo banco e não pela boa vontade do código.
-- `inativo` / `inativo_em` / `status_em` no cadastro — a baixa lógica.
-- Trigger de `atualizado_em` — o carimbo que decide quem vence quando dois aparelhos editam.
+## Onde o assunto vive agora
 
-A **obra ganhou identidade própria** (`uuid`), e o nome virou rótulo editável. Isso mata a
-armadilha de renomear a obra e "perder" o histórico.
+**Fora daqui, e é assim que tem de ser.** O P3 é projeto separado, com repositório e banco
+próprios. Este repositório volta a ser só o BUILDLy: HTML estático, Apps Script e planilha.
 
-## Segurança não é detalhe aqui
-
-O app é página estática, e nela a chave `anon` **é pública**. A única coisa entre o dado e a
-internet são as políticas RLS. Nesta etapa: nada é legível sem login; quem está autenticado vê
-tudo. Além disso o papel `anon` perde o próprio acesso às tabelas — assim, uma política
-permissiva criada por engano no futuro ainda não abriria o banco.
-
-## O que ainda falta, e é a maior parte
-
-1. Criar o projeto (nome, região, senha — decisão do usuário)
-2. Exportar as 5 abas em CSV — **só o usuário pode**, o ambiente do Claude não alcança o Google
-3. Importar com `scripts/planilha_para_supabase.py`
-4. **Reescrever a camada de dados do `rdo.html`** — 7.550 linhas hoje escritas contra
-   `localStorage` + Apps Script. É aqui que mora o risco de perder o que foi construído nesta
-   semana.
-
-Nada disso desliga o `buildly2`. Ver
+O que sobreviveu foi o aprendizado, não o código — está em
 [[Decisões/2026-08-26 Isolamento definitivo entre projetos]].
-
----
-
-## Relacionado
-
-- [[Notas/Contrato do Backend]]
-- [[Notas/Armazenamento Local]]
