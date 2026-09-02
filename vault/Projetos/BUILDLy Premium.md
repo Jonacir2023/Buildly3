@@ -141,32 +141,40 @@ Nada foi testado contra o Google nem em celular real — o ambiente do Claude n�
 
 ## Fila de desenvolvimento
 
-### Descoberto em 02/09: qual app está de fato no ar
+### 02/09 — O app vivo é outro, e é mais avançado que este
 
-Verificado no iPhone, os dois endereços:
+Verificado no iPhone e no código:
 
-| Endereço | Resultado |
+| Endereço | Estado |
 |---|---|
-| `jonacir2023.github.io/buildly2/…` | **404** — não existe repositório com esse nome |
-| `jonacir2023.github.io/diario-obras/` | **abre e funciona** |
+| `…github.io/buildly2/…` | **404** — não existe repositório com esse nome |
+| `…github.io/diario-obras/` | **no ar e em uso** — CESBE SA · Suzano · Ribas do Rio Pardo - MS |
+| `…github.io/Buildly3/…` | no ar (Pages ligado depois de 28/08, quando deu 404) |
 
-**O app que a equipe usa é o `diario-obras`.** Na tela: CESBE SA · Diário de Obras · Suzano ·
-Ribas do Rio Pardo - MS, com a data do dia. Abas Diário, Gerar, Resumo, Calendário e Cadastro,
-e o robô no cabeçalho.
+**O `diario-obras` não é uma versão antiga deste repositório. É uma linha paralela, e em
+várias coisas está na frente.** Arquivo único de 1,3 MB, 7.967 linhas, com a biblioteca de PDF
+embutida — coisa que aqui não existe.
 
-Duas coisas se encerram com isso:
+Ele tem implementação **própria** das mesmas regras, com outros nomes:
 
-- **Não havia o que despublicar.** Por dias esta nota mandou tirar o `buildly2` do ar, com base
-  numa afirmação minha que eu nunca tinha verificado. O que era fato: o `buildly2-files.zip`
-  guardado aqui contém arquivos idênticos aos de outro projeto, apontando para o mesmo Apps
-  Script. Que aquele endereço ainda respondesse foi conclusão, não constatação. Ver
-  [[Notas/Regras Operacionais Críticas]], regra 11.
-- **O Buildly3 nunca esteve no ar.** Então nada do que foi feito aqui chegou a algum celular, e
-  o app que a plataforma nova vai substituir é o `diario-obras`, não este.
+| Aqui | No app vivo |
+|---|---|
+| `LOCAIS_EXECUCAO` | `opcoesLocalExecucao` |
+| `chaveDiario` | `chaveDiarioDoAparelho` |
+| `anexarBlocoRemovidos` | `blocoRemovidos` |
+| `sincronizarComOutrosAparelhos` | `sincronizarNuvem` + `enviarSincronizacao` |
+| — | `baixarPdfRdo` (jsPDF embutido), `abrirModalPerguntar` (robô) |
 
-O `diario-obras` é projeto separado, marcado como **em uso por terceiro — não mexer**. Está fora
-do alcance desta sessão de propósito. O que dá para observar da tela: o Local da Obra ainda é
-texto livre, sem a lista fechada que foi feita aqui.
+Aponta para o Apps Script `AKfycbwa_TMG…` — o mesmo de outro projeto.
+
+**Consequência para o plano:** a migração para o Supabase tem de partir do **app vivo**, não
+deste repositório. O Buildly3 é a linha que nunca chegou a nenhum celular.
+
+**Um achado no app vivo:** o bug da lixeira do cadastro está lá **pela metade**. A lista já
+filtra por vigência (`categoriasVigentes`), mas `removerColaborador` não desmarca a pessoa do
+dia — então quem está marcado presente continua na tela depois de removido. É metade da
+correção de 26/08 daqui. O repositório está marcado como *em uso por terceiro, não mexer*: fica
+como achado, não como alteração.
 
 ### Bloqueando tudo: o Buildly3 não está publicado
 
