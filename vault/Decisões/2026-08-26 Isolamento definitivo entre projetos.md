@@ -60,11 +60,20 @@ Regra escrita depende de alguém lembrar. Este incidente não veio de desatenç�
 endereço publicado apontando para o backend errado, coisa que nenhuma leitura de código pega no
 dia a dia. O verificador roda em segundos e **falha**; é o que impede a repetição.
 
-## O que só o usuário pode fazer
+## O que sobrou para o usuário — e acabou em nada
 
-**Tirar o `buildly2` do ar.** Enquanto aquele endereço existir, qualquer pessoa que o abrir
-escreve no backend do outro projeto. Isso não é corrigível daqui: `buildly2` é outro
-repositório. Publicar o Buildly3 não basta — é preciso despublicar o antigo.
+**Despublicar o `buildly2`.** Esta era a pendência mais urgente da nota, e ela nunca existiu:
+verificado no iPhone em 02/09, o endereço responde **404**. Não há repositório com esse nome na
+conta, e Pages de projeto sem repositório não serve nada.
+
+O que se confirmou de verdade foi só a leitura do `buildly2-files.zip` guardado no repositório:
+arquivos idênticos aos do outro projeto, apontando para o mesmo Apps Script. Um retrato de
+21/08, não um app no ar. A conclusão de que aquilo continuava servindo alguém foi minha, e
+errada — o ambiente do Claude não alcança o `github.io`, e eu tratei uma suposição como fato
+durante dias.
+
+**A correção do isolamento continua válida** e vale por si: as pastas do Drive com nome próprio,
+o código apagado, e o verificador que falha se um vínculo voltar. Só a urgência era falsa.
 
 ---
 

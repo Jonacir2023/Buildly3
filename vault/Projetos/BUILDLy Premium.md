@@ -141,13 +141,32 @@ Nada foi testado contra o Google nem em celular real — o ambiente do Claude n�
 
 ## Fila de desenvolvimento
 
-### Mais urgente que tudo: tirar o buildly2 do ar
+### Descoberto em 02/09: qual app está de fato no ar
 
-- [ ] **Despublicar `jonacir2023.github.io/buildly2/`.** Aquele endereço serve um app que aponta
-      para o Apps Script — e portanto para a planilha — de outro projeto. Quem o abrir escreve no
-      diário de obras alheio, de qualquer aparelho. Já aconteceu: alteração de efetivo feita ali
-      apareceu no outro sistema. Não dá para corrigir daqui, é outro repositório. Ver
-      [[Decisões/2026-08-26 Isolamento definitivo entre projetos]].
+Verificado no iPhone, os dois endereços:
+
+| Endereço | Resultado |
+|---|---|
+| `jonacir2023.github.io/buildly2/…` | **404** — não existe repositório com esse nome |
+| `jonacir2023.github.io/diario-obras/` | **abre e funciona** |
+
+**O app que a equipe usa é o `diario-obras`.** Na tela: CESBE SA · Diário de Obras · Suzano ·
+Ribas do Rio Pardo - MS, com a data do dia. Abas Diário, Gerar, Resumo, Calendário e Cadastro,
+e o robô no cabeçalho.
+
+Duas coisas se encerram com isso:
+
+- **Não havia o que despublicar.** Por dias esta nota mandou tirar o `buildly2` do ar, com base
+  numa afirmação minha que eu nunca tinha verificado. O que era fato: o `buildly2-files.zip`
+  guardado aqui contém arquivos idênticos aos de outro projeto, apontando para o mesmo Apps
+  Script. Que aquele endereço ainda respondesse foi conclusão, não constatação. Ver
+  [[Notas/Regras Operacionais Críticas]], regra 11.
+- **O Buildly3 nunca esteve no ar.** Então nada do que foi feito aqui chegou a algum celular, e
+  o app que a plataforma nova vai substituir é o `diario-obras`, não este.
+
+O `diario-obras` é projeto separado, marcado como **em uso por terceiro — não mexer**. Está fora
+do alcance desta sessão de propósito. O que dá para observar da tela: o Local da Obra ainda é
+texto livre, sem a lista fechada que foi feita aqui.
 
 ### Bloqueando tudo: o Buildly3 não está publicado
 
