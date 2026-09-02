@@ -141,40 +141,29 @@ Nada foi testado contra o Google nem em celular real — o ambiente do Claude n�
 
 ## Fila de desenvolvimento
 
-### 02/09 — O app vivo é outro, e é mais avançado que este
+### 02/09 — Escopo fixado pelo usuário
 
-Verificado no iPhone e no código:
+Estado dos endereços, verificado no iPhone:
 
 | Endereço | Estado |
 |---|---|
-| `…github.io/buildly2/…` | **404** — não existe repositório com esse nome |
-| `…github.io/diario-obras/` | **no ar e em uso** — CESBE SA · Suzano · Ribas do Rio Pardo - MS |
-| `…github.io/Buildly3/…` | no ar (Pages ligado depois de 28/08, quando deu 404) |
+| `…github.io/Buildly3/…` | **no ar** — o Pages foi ligado depois de 28/08, quando deu 404 |
+| `…github.io/buildly2/…` | 404 — não existe repositório com esse nome |
+| `…github.io/diario-obras/` | no ar, **de terceiro** |
 
-**O `diario-obras` não é uma versão antiga deste repositório. É uma linha paralela, e em
-várias coisas está na frente.** Arquivo único de 1,3 MB, 7.967 linhas, com a biblioteca de PDF
-embutida — coisa que aqui não existe.
+**O `diario-obras` está fora do escopo, por decisão do usuário: "não mexer jamais".** Nem como
+origem, nem como destino, nem como referência de código. Cheguei a lê-lo para saber o que
+existia e escrevi aqui que a migração deveria partir dele — **estava errado, e a nota foi
+corrigida.** O diário que vale é o deste repositório.
 
-Ele tem implementação **própria** das mesmas regras, com outros nomes:
+O que fica valendo:
 
-| Aqui | No app vivo |
+| Papel | Quem |
 |---|---|
-| `LOCAIS_EXECUCAO` | `opcoesLocalExecucao` |
-| `chaveDiario` | `chaveDiarioDoAparelho` |
-| `anexarBlocoRemovidos` | `blocoRemovidos` |
-| `sincronizarComOutrosAparelhos` | `sincronizarNuvem` + `enviarSincronizacao` |
-| — | `baixarPdfRdo` (jsPDF embutido), `abrirModalPerguntar` (robô) |
-
-Aponta para o Apps Script `AKfycbwa_TMG…` — o mesmo de outro projeto.
-
-**Consequência para o plano:** a migração para o Supabase tem de partir do **app vivo**, não
-deste repositório. O Buildly3 é a linha que nunca chegou a nenhum celular.
-
-**Um achado no app vivo:** o bug da lixeira do cadastro está lá **pela metade**. A lista já
-filtra por vigência (`categoriasVigentes`), mas `removerColaborador` não desmarca a pessoa do
-dia — então quem está marcado presente continua na tela depois de removido. É metade da
-correção de 26/08 daqui. O repositório está marcado como *em uso por terceiro, não mexer*: fica
-como achado, não como alteração.
+| Especificação — *o que* a plataforma faz | **este repositório** e este cofre |
+| Onde a plataforma nova é construída | repositório **`buildly`** |
+| Banco | Supabase **P3** |
+| Fora do escopo | `diario-obras`, `buildly2` |
 
 ### Bloqueando tudo: o Buildly3 não está publicado
 
